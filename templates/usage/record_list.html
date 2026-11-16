@@ -2,17 +2,8 @@
 {% load ui %}
 {% block title %}Usage Records{% endblock %}
 {% block page_title %}Usage records{% endblock %}
+{% block page_subtitle %}Actual room use from check-ins, imports and staff entries{% endblock %}
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <div></div>
-  {% if can_edit %}
-  <div class="d-flex flex-wrap gap-2">
-    <a href="{% url 'usage:import' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-upload"></i> Import CSV</a>
-    <a href="{% url 'usage:record_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Record use</a>
-  </div>
-  {% endif %}
-</div>
-
 <form method="get" class="card card-body mb-3 py-3">
   <div class="row g-2 align-items-end">
     <div class="col-6 col-md-2"><label class="form-label small mb-1" for="start">From</label><input type="date" id="start" name="start" value="{{ start|date:'Y-m-d' }}" class="form-control form-control-sm"></div>
@@ -42,20 +33,30 @@
   </div>
 </form>
 
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+  <span class="fw-semibold">{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}</span>
+  {% if can_edit %}
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'usage:import' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-upload"></i> Import CSV</a>
+    <a href="{% url 'usage:record_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Record use</a>
+  </div>
+  {% endif %}
+</div>
+
 <div class="card">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
-      <thead class="table-light"><tr><th>When</th><th>Facility</th><th>Linked to</th><th>Status</th><th class="text-end">Headcount</th><th>Source</th><th>Recorded by</th>{% if can_edit %}<th></th>{% endif %}</tr></thead>
+      <thead class="table-light"><tr><th>When</th><th>Facility</th><th class="d-none d-md-table-cell">Linked to</th><th>Status</th><th class="text-end">Headcount</th><th class="d-none d-lg-table-cell">Source</th><th class="d-none d-xl-table-cell">Recorded by</th>{% if can_edit %}<th></th>{% endif %}</tr></thead>
       <tbody>
       {% for r in records %}
         <tr>
           <td class="text-nowrap">{{ r.start_at|date:"M d" }} <span class="small text-secondary">{{ r.start_at|time:"H:i" }}–{{ r.end_at|time:"H:i" }}</span></td>
           <td>{{ r.facility|plate }}</td>
-          <td class="small">{% if r.schedule %}{{ r.schedule.activity }}{% elif r.reservation %}{{ r.reservation.purpose }}{% else %}<span class="text-secondary">Unscheduled</span>{% endif %}</td>
+          <td class="small d-none d-md-table-cell">{% if r.schedule %}{{ r.schedule.activity }}{% elif r.reservation %}{{ r.reservation.purpose }}{% else %}<span class="text-secondary">Unscheduled</span>{% endif %}</td>
           <td>{% if r.status == "USED" %}<span class="badge text-bg-success">Used</span>{% else %}<span class="badge text-bg-danger">No-show</span>{% endif %}</td>
           <td class="text-end {% if r.over_capacity %}text-danger fw-semibold{% endif %}">{{ r.headcount|default_if_none:"—" }}{% if r.over_capacity %} <i class="bi bi-exclamation-triangle" title="Over capacity"></i>{% endif %}</td>
-          <td><span class="badge text-bg-light border">{{ r.get_source_display }}</span></td>
-          <td class="small">{{ r.recorded_by.username|default:"—" }}</td>
+          <td class="d-none d-lg-table-cell"><span class="badge text-bg-light border">{{ r.get_source_display }}</span></td>
+          <td class="small d-none d-xl-table-cell">{{ r.recorded_by.username|default:"—" }}</td>
           {% if can_edit %}
           <td class="text-end">
             <form method="post" action="{% url 'usage:record_delete' r.pk %}" onsubmit="return confirm('Delete this usage record?');">
@@ -73,7 +74,7 @@
 </div>
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
-  <span class="small text-secondary">{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}</span>
+  <span class="small text-secondary">{% if page_obj.has_other_pages %}Showing {{ page_obj.start_index }}–{{ page_obj.end_index }}{% endif %}</span>
   {% if page_obj.has_other_pages %}
   <ul class="pagination pagination-sm mb-0">
     {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.previous_page_number }}">Previous</a></li>{% endif %}

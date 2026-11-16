@@ -14,7 +14,7 @@
 {% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 no-print">
-  <div></div>
+  <span class="small text-secondary">Print and post one code at each room's entrance. Scanning it opens the check-in page (login required).</span>
   <div class="d-flex flex-wrap gap-2">
     <form method="get" class="d-flex gap-2">
       <label class="visually-hidden" for="building">Building</label>
@@ -35,8 +35,6 @@
   and open this page using that IP address (for example <code>http://192.168.1.10:8000/usage/qr/</code>).
 </div>
 {% endif %}
-
-<p class="text-secondary small no-print">Print and post one code at each room's entrance. Scanning it opens the check-in page (login required).</p>
 
 <div class="row g-3">
   {% for card in cards %}

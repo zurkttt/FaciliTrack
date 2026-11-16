@@ -1,30 +1,38 @@
 {% extends "base.html" %}
 {% block title %}Audit Log{% endblock %}
-{% block page_title %}Audit Log{% endblock %}
+{% block page_title %}Audit log{% endblock %}
+{% block page_subtitle %}Every change to tracked records, with who made it{% endblock %}
 {% block content %}
 
-<form method="get" class="row g-2 mb-3">
-  <div class="col-12 col-md-4">
-    <input type="search" name="q" value="{{ q }}" class="form-control" placeholder="Search user or record">
-  </div>
-  <div class="col-8 col-md-3">
-    <select name="action" class="form-select">
-      <option value="">All actions</option>
-      {% for value, label in actions %}
-      <option value="{{ value }}" {% if value == selected_action %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="col-4 col-md-2">
-    <button class="btn btn-primary w-100" type="submit">Filter</button>
+<form method="get" class="card card-body mb-3 py-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-6 col-xl-5">
+      <label class="form-label small mb-1" for="q">Search</label>
+      <input type="search" id="q" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="User or record">
+    </div>
+    <div class="col-12 col-md-3 col-xl">
+      <label class="form-label small mb-1" for="action">Action</label>
+      <select id="action" name="action" class="form-select form-select-sm">
+        <option value="">All</option>
+        {% for value, label in actions %}<option value="{{ value }}" {% if value == selected_action %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-12 col-md-3 col-xl-auto d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+      <a href="{{ request.path }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
   </div>
 </form>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+  <span class="fw-semibold">{{ page_obj.paginator.count }} event{{ page_obj.paginator.count|pluralize }}</span>
+</div>
 
 <div class="card">
   <div class="table-responsive">
     <table class="table table-sm table-hover align-middle mb-0">
       <thead class="table-light">
-        <tr><th>When</th><th>User</th><th>Action</th><th>Record</th><th>Changes</th><th>IP</th></tr>
+        <tr><th>When</th><th>User</th><th>Action</th><th>Record</th><th>Changes</th><th class="d-none d-lg-table-cell">IP</th></tr>
       </thead>
       <tbody>
       {% for e in events %}
@@ -40,7 +48,7 @@
               {% endfor %}
             {% endif %}
           </td>
-          <td class="small text-secondary">{{ e.ip_address|default:"" }}</td>
+          <td class="small text-secondary d-none d-lg-table-cell">{{ e.ip_address|default:"" }}</td>
         </tr>
       {% empty %}
         <tr><td colspan="6" class="text-center text-secondary py-4">No audit events found.</td></tr>

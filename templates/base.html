@@ -61,7 +61,7 @@
     </button>
     <div class="topbar-title">
       <h1>{% block page_title %}{{ nav_active_label|default:"FaciliTrack" }}{% endblock %}</h1>
-      <div class="topbar-sub">{% block page_subtitle %}{{ nav_active_section|default:"Campus Facility Usage Monitoring" }}{% endblock %}</div>
+      <div class="topbar-sub">{% block page_subtitle %}{% if nav_active_section and nav_active_section != nav_active_label %}{{ nav_active_section }}{% else %}Campus Facility Usage Monitoring{% endif %}{% endblock %}</div>
     </div>
     <div class="topbar-actions">
       <div class="dropdown">
