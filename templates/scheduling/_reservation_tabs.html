@@ -1,0 +1,16 @@
+{% comment %}Tabs shared by the Reservations section. Pass tab="requests" or tab="find".{% endcomment %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <ul class="nav nav-tabs flex-grow-1">
+    <li class="nav-item">
+      <a class="nav-link{% if tab == 'requests' %} active{% endif %}" {% if tab == 'requests' %}aria-current="page"{% endif %} href="{% url 'scheduling:reservation_list' %}">
+        <i class="bi bi-list-check"></i> Requests
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link{% if tab == 'find' %} active{% endif %}" {% if tab == 'find' %}aria-current="page"{% endif %} href="{% url 'scheduling:availability' %}">
+        <i class="bi bi-search"></i> Find a Room
+      </a>
+    </li>
+  </ul>
+  <a href="{% url 'scheduling:reservation_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> New request</a>
+</div>

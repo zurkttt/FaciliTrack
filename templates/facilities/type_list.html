@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Facility Types{% endblock %}
+{% block page_title %}Facility types{% endblock %}
 {% block content %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb small">
@@ -8,7 +9,7 @@
   </ol>
 </nav>
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0">Facility types</h1>
+  <div></div>
   <a href="{% url 'facilities:type_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add type</a>
 </div>
 <div class="card">

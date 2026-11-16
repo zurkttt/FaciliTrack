@@ -10,10 +10,10 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <h1 class="h3 mb-0">{% if data %}{{ data.title }}{% else %}{{ spec.title }}{% endif %}</h1>
   {% if data %}
-  <div class="btn-group btn-group-sm" role="group" aria-label="Download">
-    <a class="btn btn-outline-primary" href="?{{ querystring }}&format=pdf"><i class="bi bi-filetype-pdf"></i> PDF</a>
-    <a class="btn btn-outline-primary" href="?{{ querystring }}&format=xlsx"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
-    <a class="btn btn-outline-primary" href="?{{ querystring }}&format=csv"><i class="bi bi-filetype-csv"></i> CSV</a>
+  <div class="d-flex flex-wrap gap-2" role="group" aria-label="Download">
+    <a class="btn btn-outline-secondary" href="?{{ querystring }}&format=csv"><i class="bi bi-filetype-csv"></i> CSV</a>
+    <a class="btn btn-outline-secondary" href="?{{ querystring }}&format=xlsx"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
+    <a class="btn btn-primary" href="?{{ querystring }}&format=pdf"><i class="bi bi-download"></i> Download PDF</a>
   </div>
   {% endif %}
 </div>

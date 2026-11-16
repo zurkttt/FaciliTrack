@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Utilization{% endblock %}
 {% block extra_head %}
 <style>
@@ -26,14 +27,15 @@
   .num { font-variant-numeric: tabular-nums; }
 </style>
 {% endblock %}
+{% block page_title %}Facility Utilization{% endblock %}
+{% block page_subtitle %}{% if definition %}{{ definition.name }} v{{ definition.version }}: used hours ÷ available hours{% else %}Analytics{% endif %}{% endblock %}
 {% block content %}
 <div class="viz-root">
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
   <div>
-    <h1 class="h3 mb-0">Facility utilization</h1>
     {% if definition %}
     <div class="small text-secondary">
-      {{ definition.name }} v{{ definition.version }}: used hours ÷ available hours ({{ definition.operating_days_display }}{% if definition.exclude_maintenance %}, maintenance excluded{% endif %}{% if definition.count_reservations_as_use %}, reservations count as use{% endif %})
+      Available time: {{ definition.operating_days_display }}{% if definition.exclude_maintenance %}, maintenance excluded{% endif %}{% if definition.count_reservations_as_use %}, reservations count as use{% endif %}
     </div>
     {% endif %}
   </div>
@@ -59,48 +61,43 @@
 <form method="get" class="card card-body mb-3 py-3" novalidate>
   <div class="row g-2 align-items-end">
     {% for field in form %}
-    <div class="col-6 col-md-3 col-xl">
+    {% if field.name == "group" or field.name == "period" %}{{ field.as_hidden }}{% else %}
+    <div class="col-6 col-md-4 col-xl">
       <label class="form-label small mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
       {{ field }}
       {% for e in field.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
     </div>
+    {% endif %}
     {% endfor %}
-    <div class="col-12 col-md-3 col-xl-auto d-flex gap-2">
+    <div class="col-12 col-md-4 col-xl-auto d-flex gap-2">
       <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Apply</button>
       <a href="{% url 'analytics:dashboard' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
     </div>
   </div>
 </form>
 
+{% if groupings %}
+<div class="d-flex flex-wrap gap-2 mb-3">
+  <div class="segmented" role="group" aria-label="Group by">
+    {% for key, label in groupings %}<a href="?{% qs_replace 'group' key %}" class="{% if group == key %}active{% endif %}">{{ label }}</a>{% endfor %}
+  </div>
+  <div class="segmented" role="group" aria-label="Trend period">
+    {% for key, label in periods %}<a href="?{% qs_replace 'period' key %}" class="{% if form.period.value == key %}active{% endif %}">{{ label }}</a>{% endfor %}
+  </div>
+</div>
+{% endif %}
+{% if insight %}<p class="insight mb-4">{{ insight }}</p>{% endif %}
+
 {% if total %}
 {% if not has_data %}
 <div class="alert alert-info">No utilization data for this selection.{% if can_admin %} Use <strong>Recalculate</strong> to compute it.{% endif %}</div>
 {% else %}
 
-<div class="row g-3 mb-3">
-  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body">
-    <div class="text-secondary small">Utilization</div>
-    <div class="fs-2 fw-semibold">{{ total.rate|floatformat:1 }}%</div>
-    <div class="small text-secondary">{{ total.used|floatformat:0 }} of {{ total.available|floatformat:0 }} available hours used</div>
-  </div></div></div>
-  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body">
-    <div class="text-secondary small">Scheduled</div>
-    <div class="fs-2 fw-semibold">{{ total.scheduled_rate|floatformat:1 }}%</div>
-    <div class="small text-secondary">{{ total.gap|floatformat:1 }} pts booked but not used</div>
-  </div></div></div>
-  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body">
-    <div class="text-secondary small">Average seat occupancy</div>
-    <div class="fs-2 fw-semibold">{% if total.occupancy is not None %}{{ total.occupancy|floatformat:0 }}%{% else %}—{% endif %}</div>
-    <div class="small text-secondary">of capacity, when in use and counted</div>
-  </div></div></div>
-  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body">
-    <div class="text-secondary small">Outside target range</div>
-    <div class="fs-2 fw-semibold">{{ low_count|add:high_count }}</div>
-    <div class="small">
-      <span class="text-secondary"><i class="bi bi-arrow-down-circle"></i> {{ low_count }} under {{ limits.low|floatformat:0 }}%</span> ·
-      <span class="text-secondary"><i class="bi bi-arrow-up-circle"></i> {{ high_count }} high demand</span>
-    </div>
-  </div></div></div>
+<div class="kpi-grid four">
+  <div class="col">{% include "includes/kpi_card.html" with tone="accent" icon="activity" label="Utilization" value=total.rate|floatformat:1 unit="%" note=used_note %}</div>
+  <div class="col">{% include "includes/kpi_card.html" with tone="blue" icon="speedometer2" label="Scheduled" value=total.scheduled_rate|floatformat:1 unit="%" value_tone="blue" bar=total.scheduled_rate|floatformat:0 mark=limits.high|floatformat:0 note=gap_note %}</div>
+  <div class="col">{% include "includes/kpi_card.html" with tone="purple" icon="people" label="Average Seat Occupancy" value=total.occupancy|floatformat:0|default:"—" unit="%" value_tone="blue" note="of capacity, when in use and counted" %}</div>
+  <div class="col">{% include "includes/kpi_card.html" with tone="red" icon="exclamation-triangle" label="Outside Target Range" value=low_count|add:high_count value_tone="red" note=range_note %}</div>
 </div>
 
 <div class="row g-3 mb-3">
@@ -139,7 +136,7 @@
         <tr>
           <th scope="row" class="text-end pe-2">{{ row.day }}</th>
           {% for c in row.cells %}
-          <td style="{% if c.color %}background: {{ c.color }};{% endif %}" title="{{ row.day }} {{ c.hour }}:00–{{ c.hour|add:1 }}:00 · {{ c.value }} rooms in use on average">
+          <td style="{% if c.color %}background: {{ c.color }};{% endif %}" title="{{ row.day }} {{ c.hour }}:00–{{ c.hour|add:1 }}:00: {{ c.value }} rooms in use on average">
             <span class="visually-hidden">{{ row.day }} {{ c.hour }}:00, {{ c.value }} rooms</span>
           </td>
           {% endfor %}
@@ -210,7 +207,7 @@
   const css = getComputedStyle(document.querySelector(".viz-root"));
   const v = (name) => css.getPropertyValue(name).trim();
   const ink = { text: v("--text-secondary"), muted: v("--text-muted"), grid: v("--grid"), axis: v("--axis") };
-  Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+  Chart.defaults.font.family = '"Overpass", system-ui, -apple-system, "Segoe UI", sans-serif';
   Chart.defaults.color = ink.muted;
   const pct = (x) => (x === null || x === undefined ? "—" : x.toFixed(1) + "%");
   const tooltip = {
@@ -231,7 +228,7 @@
       const { ctx, chartArea } = chart;
       ctx.save();
       ctx.strokeStyle = ink.axis; ctx.fillStyle = ink.muted; ctx.lineWidth = 1;
-      ctx.font = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
+      ctx.font = '11px "Overpass", system-ui, sans-serif';
       for (const [value, label] of opts.lines) {
         const p = Math.round(scale.getPixelForValue(value)) + 0.5;
         ctx.beginPath();

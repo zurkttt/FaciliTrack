@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Metric Definitions{% endblock %}
+{% block page_title %}Utilization metric definitions{% endblock %}
 {% block content %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb small">
@@ -7,7 +8,6 @@
     <li class="breadcrumb-item active" aria-current="page">Metric definitions</li>
   </ol>
 </nav>
-<h1 class="h3 mb-1">Utilization metric definitions</h1>
 <p class="text-secondary small mb-3">
   Section 7.3: the institution must define what counts as available and used time. Definitions are versioned and never edited.
   To change the rules, create a new version, get it approved, then activate it. Every stored metric records which version produced it.
@@ -26,7 +26,7 @@
               <td class="small">
                 <div>{{ d.formula }}</div>
                 <div class="text-secondary">Operating days: {{ d.operating_days_display }}</div>
-                <div class="text-secondary">Maintenance {% if d.exclude_maintenance %}excluded from{% else %}included in{% endif %} available time · Reservations {% if d.count_reservations_as_use %}count{% else %}do not count{% endif %} as use</div>
+                <div class="text-secondary">Maintenance {% if d.exclude_maintenance %}excluded from{% else %}included in{% endif %} available time. Reservations {% if d.count_reservations_as_use %}count{% else %}do not count{% endif %} as use</div>
                 {% if d.notes %}<div class="text-secondary fst-italic">{{ d.notes }}</div>{% endif %}
               </td>
               <td class="small">{{ d.approved_by|default:"—" }}</td>

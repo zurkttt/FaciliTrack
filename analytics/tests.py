@@ -191,7 +191,7 @@ class DashboardTests(TestCase):
         self.login(self.viewer)
         self.assertEqual(self.client.get(reverse("analytics:dashboard")).status_code, 403)
         self.login(self.depthead)
-        self.assertContains(self.client.get(reverse("analytics:dashboard")), "Facility utilization")
+        self.assertContains(self.client.get(reverse("analytics:dashboard")), "Facility Utilization")
         self.assertEqual(self.client.get(reverse("analytics:definitions")).status_code, 403)
 
     def test_dashboard_shows_seeded_data_and_groupings(self):

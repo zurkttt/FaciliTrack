@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Reports{% endblock %}
+{% block page_title %}Reports{% endblock %}
 {% block content %}
-<h1 class="h3 mb-1">Reports</h1>
 <p class="text-secondary small mb-3">Standard reports from governed data. Every export lists its parameters, data sources and generation time, and is recorded in the audit log.</p>
 <div class="row g-3">
   {% for r in reports %}

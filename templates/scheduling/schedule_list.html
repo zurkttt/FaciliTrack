@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Class Schedules{% endblock %}
+{% block page_title %}Class schedules{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <h1 class="h3 mb-0">Class schedules</h1>
+  <div></div>
   {% if can_edit %}
   <div class="d-flex flex-wrap gap-2">
     <a href="{% url 'scheduling:schedule_import' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-upload"></i> Import CSV</a>
@@ -13,39 +15,39 @@
 
 <form method="get" class="card card-body mb-3 py-3">
   <div class="row g-2 align-items-end">
-    <div class="col-12 col-md-3">
+    <div class="col-12 col-lg">
       <label class="form-label small mb-1" for="q">Course / activity</label>
       <input type="search" id="q" name="q" value="{{ filters.q }}" class="form-control form-control-sm" placeholder="Code or title">
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 col-lg">
       <label class="form-label small mb-1" for="building">Building</label>
       <select id="building" name="building" class="form-select form-select-sm">
         <option value="">All</option>
         {% for b in buildings %}<option value="{{ b.pk }}" {% if filters.building == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.code }}</option>{% endfor %}
       </select>
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 col-lg">
       <label class="form-label small mb-1" for="facility">Facility</label>
       <select id="facility" name="facility" class="form-select form-select-sm">
         <option value="">All</option>
         {% for f in facilities %}<option value="{{ f.pk }}" {% if filters.facility == f.pk|stringformat:"s" %}selected{% endif %}>{{ f.facility_code }}</option>{% endfor %}
       </select>
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 col-lg">
       <label class="form-label small mb-1" for="day">Day</label>
       <select id="day" name="day" class="form-select form-select-sm">
         <option value="">All</option>
         {% for value, label in days %}<option value="{{ value }}" {% if filters.day == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
     </div>
-    <div class="col-6 col-md-1">
+    <div class="col-6 col-lg">
       <label class="form-label small mb-1" for="term">Term</label>
       <select id="term" name="term" class="form-select form-select-sm">
         <option value="">Current</option>
         <option value="all" {% if filters.term == "all" %}selected{% endif %}>All</option>
       </select>
     </div>
-    <div class="col-12 col-md-2 d-flex gap-2">
+    <div class="col-12 col-lg-auto d-flex gap-2">
       <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
       <a href="{% url 'scheduling:schedule_list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
     </div>
@@ -64,7 +66,7 @@
           <td>{{ s.get_day_of_week_display }}</td>
           <td class="text-nowrap">{{ s.start_time|time:"H:i" }}–{{ s.end_time|time:"H:i" }}</td>
           <td><span class="fw-semibold">{{ s.activity.code }}</span> <span class="text-secondary small">{{ s.activity.title }}</span></td>
-          <td><a href="{% url 'facilities:detail' s.facility.pk %}" class="text-decoration-none">{{ s.facility.facility_code }}</a></td>
+          <td><a href="{% url 'facilities:detail' s.facility.pk %}" class="text-decoration-none">{{ s.facility|plate }}</a></td>
           <td class="text-end {% if s.expected_attendees > s.facility.capacity %}text-danger fw-semibold{% endif %}"
               {% if s.expected_attendees > s.facility.capacity %}title="Exceeds capacity of {{ s.facility.capacity }}"{% endif %}>
             {{ s.expected_attendees }}{% if s.expected_attendees > s.facility.capacity %} <i class="bi bi-exclamation-triangle"></i>{% endif %}
@@ -75,7 +77,7 @@
           <td class="text-end text-nowrap">
             <a href="{% url 'scheduling:schedule_update' s.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
             <form method="post" action="{% url 'scheduling:schedule_delete' s.pk %}" class="d-inline" onsubmit="return confirm('Delete this schedule?');">
-              {% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Delete"><i class="bi bi-trash"></i></button>
+              {% csrf_token %}<button class="btn btn-sm btn-outline-danger btn-icon" type="submit" aria-label="Delete" title="Delete"><i class="bi bi-trash"></i></button>
             </form>
           </td>
           {% endif %}

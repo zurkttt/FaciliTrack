@@ -1,41 +1,240 @@
-/* FaciliTrack custom styles */
-.stat-card {
-  border: none;
-  border-left: 4px solid var(--bs-primary);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-}
+/* =====================================================================
+   FaciliTrack design system: "campus wayfinding"
+   The identity comes from building signage: room codes are drawn as teal door plates (.plate),
+   type is Overpass (derived from Highway Gothic, the signage face), the page is the corridor
+   (cool gray-green) and panels are flat directory boards. Shadows only on things that float.
+   To re-theme, change the --ft-accent* values (keep white-on-accent contrast >= 4.5:1).
+   ===================================================================== */
+:root {
+  --ft-accent: #0f6e6e;          /* plate teal: 6.0:1 with white text */
+  --ft-accent-hover: #0b5858;
+  --ft-accent-soft: #d9ecea;     /* active menu item / hover backgrounds */
+  --ft-accent-ink: #0a4d4d;      /* text on the soft background */
+  --ft-accent-border: #a9d3d1;   /* outline buttons */
+  --ft-accent-ring: rgba(15, 110, 110, .22);
+  --ft-amber: #e3a33a;           /* plate for rooms needing attention: dark lettering, 6.7:1 */
+  --ft-link: #1a5fb4;
+  --ft-canvas: #eef2f1;          /* corridor */
+  --ft-card: #ffffff;            /* board */
+  --ft-border: #d3dcda;          /* rail */
+  --ft-ink: #1f2a2a;             /* slate ink, 13:1 on the corridor */
+  --ft-ink-2: #46524f;
+  --ft-ink-3: #5f6b68;           /* 4.9:1 on the corridor, 5.5:1 on white */
+  --ft-radius: 12px;             /* boards */
+  --ft-radius-sm: 8px;           /* controls */
+  --ft-radius-plate: 4px;        /* door plates: almost square, like real plaques */
+  --ft-sidebar-w: 264px;
+  --ft-font: "Overpass", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 
-/* Weekly facility calendar */
-.calendar-week {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.5rem;
+  --bs-body-bg: var(--ft-canvas);
+  --bs-body-color: var(--ft-ink);
+  --bs-link-color: var(--ft-link);
+  --bs-link-color-rgb: 26, 95, 180;
+  --bs-link-hover-color: #144a8c;
+  --bs-border-color: var(--ft-border);
+  --bs-secondary-color: var(--ft-ink-3);
+  --bs-body-font-family: var(--ft-font);
+}
+body { background: var(--ft-canvas); color: var(--ft-ink); font-feature-settings: "kern"; }
+.table, .kpi-value, .num { font-variant-numeric: tabular-nums; }
+h1, h2, h3, .h3, .h4, .h5, .h6 { letter-spacing: -0.01em; }
+
+/* ---------------------------------------------------------- door plates (the signature element) */
+.plate { display: inline-flex; align-items: center; padding: 0.18em 0.5em 0.1em; border-radius: var(--ft-radius-plate);
+         background: var(--ft-accent); color: #fff; font-weight: 700; font-size: 0.84em; letter-spacing: 0.04em;
+         line-height: 1.25; white-space: nowrap; vertical-align: 0.08em;
+         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), inset 0 -2px 0 rgba(0, 0, 0, .14); }
+.plate-amber { background: var(--ft-amber); color: var(--ft-ink); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .12); }
+.plate-off { background: var(--ft-ink-3); }
+.plate-lg { font-size: 1.15em; padding: 0.22em 0.6em 0.12em; border-radius: 5px; vertical-align: 0.1em; }
+a:hover .plate:not(.plate-amber) { background: var(--ft-accent-hover); }
+a:has(.plate) { text-decoration: none; }
+.facility-title-name { color: var(--ft-ink-2); font-weight: 500; margin-left: 0.35rem; }
+.text-secondary { color: var(--ft-ink-3) !important; }
+
+/* ---------------------------------------------------------- layout */
+.app-sidebar { background: var(--ft-card); }
+.sidebar-inner { display: flex; flex-direction: column; height: 100%; width: 100%; background: var(--ft-card); }
+.sidebar-brand { display: flex; align-items: center; justify-content: space-between; padding: 1.4rem 1.25rem 1.1rem; }
+/* Brand mark is itself a door plate: a square teal plaque */
+.brand-mark { width: 40px; height: 40px; border-radius: 6px; background: var(--ft-accent); color: #fff;
+              display: inline-flex; align-items: center; justify-content: center; font-size: 1.15rem; flex-shrink: 0;
+              box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), inset 0 -3px 0 rgba(0, 0, 0, .16); }
+.brand-name { display: block; font-weight: 800; font-size: 1.3rem; color: var(--ft-ink); line-height: 1.1; letter-spacing: -0.01em; }
+.brand-sub { display: block; font-size: 0.82rem; color: var(--ft-ink-3); }
+.sidebar-nav { flex: 1 1 auto; overflow-y: auto; padding: 0.25rem 0.85rem 1rem; border-top: 1px solid var(--ft-border); padding-top: 0.75rem; }
+/* Section names read like a building directory: sentence case, quiet */
+.sidebar-heading { font-size: 0.8rem; font-weight: 700; color: var(--ft-ink-3); padding: 1.1rem 0.85rem 0.3rem; }
+.sidebar-link { display: flex; align-items: center; gap: 0.85rem; padding: 0.55rem 0.85rem; border-radius: var(--ft-radius-sm);
+                color: var(--ft-ink-2); text-decoration: none; font-size: 0.97rem; border: 0; background: none; text-align: left; }
+.sidebar-link .bi { font-size: 1.15rem; width: 1.3rem; text-align: center; color: var(--ft-ink-3); }
+.sidebar-link:hover { background: #f1f3f5; color: var(--ft-ink); }
+.sidebar-link.active { background: var(--ft-accent-soft); color: var(--ft-accent-ink); font-weight: 600; }
+.sidebar-link.active .bi { color: var(--ft-accent); }
+.sidebar-footer { border-top: 1px solid var(--ft-border); padding: 0.75rem 0.85rem 1rem; }
+
+.app-topbar { position: sticky; top: 0; z-index: 1020; display: flex; align-items: center; gap: 1rem;
+              background: var(--ft-card); border-bottom: 1px solid var(--ft-border); padding: 0.85rem 1.5rem; }
+.topbar-title h1 { font-size: 1.5rem; font-weight: 800; margin: 0; line-height: 1.15; letter-spacing: -0.015em; }
+.topbar-sub { font-size: 0.88rem; color: var(--ft-ink-3); }
+.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 0.85rem; }
+.topbar-btn { width: 40px; height: 40px; border: 1px solid var(--ft-border); border-radius: 10px; background: var(--ft-card);
+              color: var(--ft-ink); display: inline-flex; align-items: center; justify-content: center; font-size: 1.3rem; }
+.topbar-btn.round { border-radius: 50%; width: 46px; height: 46px; font-size: 1.15rem; }
+.topbar-btn:hover { background: #f1f3f5; }
+.notif-dot { position: absolute; top: -2px; right: -2px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+             background: #d03b3b; color: #fff; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.user-chip { display: flex; align-items: center; gap: 0.65rem; border: 0; background: none; padding: 0; }
+.avatar { width: 46px; height: 46px; border-radius: 50%; background: var(--ft-accent); color: #fff; font-weight: 700;
+          font-size: 1.1rem; display: inline-flex; align-items: center; justify-content: center; }
+.user-chip-text { flex-direction: column; align-items: flex-start; line-height: 1.2; }
+.user-chip-name { font-weight: 700; color: var(--ft-ink); }
+.user-chip-role { font-size: 0.82rem; color: var(--ft-ink-3); }
+.app-content { padding: 1.75rem 1.5rem 2.5rem; }
+
+@media (min-width: 992px) {
+  .has-sidebar .app-sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: var(--ft-sidebar-w);
+                              border-right: 1px solid var(--ft-border); z-index: 1030; transition: transform .2s ease; }
+  .has-sidebar .app-main { margin-left: var(--ft-sidebar-w); transition: margin-left .2s ease; }
+  .sidebar-collapsed .has-sidebar .app-sidebar { transform: translateX(-100%); }
+  .sidebar-collapsed .has-sidebar .app-main { margin-left: 0; }
+  .app-content { padding: 1.75rem 2rem 2.5rem; }
 }
 @media (max-width: 991.98px) {
-  .calendar-week { grid-template-columns: 1fr; }
+  .app-sidebar { width: min(var(--ft-sidebar-w), 85vw) !important; }
+  .app-topbar { padding: 0.7rem 1rem; }
+  .topbar-title h1 { font-size: 1.2rem; }
+  .app-content { padding: 1.25rem 1rem 2rem; }
 }
+
+/* ---------------------------------------------------------- cards & controls */
+/* Boards: flat, thin rail border, no shadow. Shadow is reserved for things that float (menus). */
+.card { border: 1px solid var(--ft-border); border-radius: var(--ft-radius); box-shadow: none; }
+.card > .card-header:first-child { border-radius: var(--ft-radius) var(--ft-radius) 0 0; }
+.card > .card-footer:last-child { border-radius: 0 0 var(--ft-radius) var(--ft-radius); }
+.card-header { background: var(--ft-card); border-bottom-color: var(--ft-border); padding: 0.85rem 1.15rem; font-weight: 700; }
+.card-header .fw-semibold { font-weight: 700 !important; }
+.card-footer { background: #f6f8f8; border-top-color: var(--ft-border); }
+.card > .table-responsive:last-child, .card > .table-responsive:last-child .table { border-radius: 0 0 var(--ft-radius) var(--ft-radius); }
+.card > .table-responsive:first-child .table thead th:first-child { border-top-left-radius: var(--ft-radius); }
+.card > .table-responsive:first-child .table thead th:last-child { border-top-right-radius: var(--ft-radius); }
+.table > :not(caption) > * > * { padding: 0.7rem 0.85rem; }
+.table thead th, .table thead.table-light th { font-weight: 700; font-size: 0.85rem; color: var(--ft-ink-3);
+                   background: var(--ft-card); border-bottom: 2px solid var(--ft-border); }
+.table td { border-color: #e6ecea; }
+h1.h3 { font-weight: 800; }
+
+/* ---------------------------------------------------------- buttons
+   Four kinds only:
+     .btn-primary            solid accent: the ONE main action in an area (Save, Approve, Reserve)
+     .btn-outline-secondary  white/neutral: everyday secondary actions (Calendar, Export, Cancel)
+     .btn-outline-primary    accent outline: positive secondary actions (Used, Reactivate)
+     .btn-outline-danger     red outline: destructive actions (Deactivate, Reject, Delete)
+   Success/warning/info buttons are mapped onto these so nothing renders in off-theme colors. */
+.btn { --bs-btn-font-weight: 500; --bs-btn-padding-x: 1rem; --bs-btn-padding-y: 0.5rem; --bs-btn-border-radius: 10px;
+       display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; line-height: 1.4; white-space: nowrap; }
+.btn .bi { font-size: 1.05em; line-height: 1; }
+.btn-sm { --bs-btn-padding-x: 0.8rem; --bs-btn-padding-y: 0.38rem; --bs-btn-font-size: 0.875rem; --bs-btn-border-radius: 9px; min-height: 34px; }
+.btn-lg { --bs-btn-padding-y: 0.75rem; --bs-btn-font-size: 1.05rem; --bs-btn-border-radius: 12px; }
+.btn-primary, .btn-success { --bs-btn-color: #fff; --bs-btn-bg: var(--ft-accent); --bs-btn-border-color: var(--ft-accent);
+               --bs-btn-hover-color: #fff; --bs-btn-hover-bg: var(--ft-accent-hover); --bs-btn-hover-border-color: var(--ft-accent-hover);
+               --bs-btn-active-color: #fff; --bs-btn-active-bg: var(--ft-accent-hover); --bs-btn-active-border-color: var(--ft-accent-hover);
+               --bs-btn-disabled-color: #fff; --bs-btn-disabled-bg: var(--ft-accent); --bs-btn-disabled-border-color: var(--ft-accent);
+               box-shadow: 0 1px 2px rgba(16, 24, 40, .08); }
+.btn-outline-primary, .btn-outline-success { --bs-btn-color: var(--ft-accent); --bs-btn-border-color: var(--ft-accent-border); --bs-btn-bg: var(--ft-card);
+               --bs-btn-hover-color: var(--ft-accent-ink); --bs-btn-hover-bg: var(--ft-accent-soft); --bs-btn-hover-border-color: var(--ft-accent);
+               --bs-btn-active-color: #fff; --bs-btn-active-bg: var(--ft-accent); --bs-btn-active-border-color: var(--ft-accent); }
+.btn-outline-secondary, .btn-outline-warning, .btn-outline-info, .btn-outline-dark {
+               --bs-btn-color: var(--ft-ink-2); --bs-btn-border-color: var(--ft-border); --bs-btn-bg: var(--ft-card);
+               --bs-btn-hover-color: var(--ft-ink); --bs-btn-hover-bg: #f3f4f6; --bs-btn-hover-border-color: #d5d8dd;
+               --bs-btn-active-color: var(--ft-ink); --bs-btn-active-bg: #e9ecef; --bs-btn-active-border-color: #d5d8dd; }
+.btn-outline-danger { --bs-btn-color: #b42318; --bs-btn-border-color: #f2c4bf; --bs-btn-bg: var(--ft-card);
+               --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #c42f2f; --bs-btn-hover-border-color: #c42f2f;
+               --bs-btn-active-color: #fff; --bs-btn-active-bg: #a8231f; --bs-btn-active-border-color: #a8231f; }
+.btn-outline-light { --bs-btn-padding-x: 0.8rem; }
+.btn:disabled, .btn.disabled { opacity: .5; box-shadow: none; }
+/* Icon-only buttons (e.g. delete in a table row) are square */
+.btn-icon { padding-left: 0; padding-right: 0; width: 34px; }
+.btn-group > .btn { gap: 0.35rem; }
+.dropdown-item { display: flex; align-items: center; gap: 0.55rem; padding: 0.45rem 1rem; }
+.dropdown-item.text-danger:active { background: #c42f2f; color: #fff !important; }
+.dropdown-menu { border-color: var(--ft-border); border-radius: 12px; box-shadow: 0 8px 24px rgba(16, 24, 40, .12); padding: 0.35rem 0; }
+
+/* Links: no underline at rest (like the reference design), underline on hover */
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
+a.btn:hover, .sidebar-link:hover, a.card:hover, .segmented a:hover, .kpi-card a:hover { text-decoration: none; }
+
+.form-control, .form-select { border-radius: 10px; border-color: var(--ft-border); }
+.form-control-sm, .form-select-sm { border-radius: 9px; min-height: 34px; }
+.form-control:focus, .form-select:focus { border-color: var(--ft-accent-border); box-shadow: 0 0 0 .2rem var(--ft-accent-ring); }
+.form-check-input:focus { border-color: var(--ft-accent-border); box-shadow: 0 0 0 .2rem var(--ft-accent-ring); }
+.btn:focus-visible { box-shadow: 0 0 0 .2rem var(--ft-accent-ring); }
+.form-check-input:checked { background-color: var(--ft-accent); border-color: var(--ft-accent); }
+.pagination { --bs-pagination-color: var(--ft-accent); --bs-pagination-active-bg: var(--ft-accent); --bs-pagination-active-border-color: var(--ft-accent); }
+.nav-tabs .nav-link { color: var(--ft-ink-2); }
+.nav-tabs .nav-link.active { color: var(--ft-accent-ink); font-weight: 600; }
+.breadcrumb { --bs-breadcrumb-divider-color: var(--ft-ink-3); }
+.alert { border-radius: 12px; }
+
+/* Segmented control (Hourly | Daily | Monthly) */
+.segmented { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--ft-border); border-radius: 12px; padding: 3px;
+             background: var(--ft-card); gap: 2px; }
+.segmented a, .segmented button { border: 0; background: none; padding: 0.42rem 0.95rem; border-radius: 9px; color: var(--ft-ink);
+             text-decoration: none; font-size: 0.95rem; white-space: nowrap; }
+.segmented a:hover, .segmented button:hover { background: #f1f3f5; }
+.segmented .active { background: var(--ft-accent); color: #fff; font-weight: 600; }
+.segmented .active:hover { background: var(--ft-accent-hover); }
+
+/* Insight callout above a chart */
+.insight { border-left: 4px solid var(--ft-accent); padding: 0.15rem 0 0.15rem 0.9rem; font-size: 1rem; line-height: 1.55; color: var(--ft-ink); }
+
+/* ---------------------------------------------------------- KPI cards */
+/* Compact square tiles: icon + label, value, a two-line note, and the View pill. Tiles are ~180px wide and
+   at least 176px tall (square in practice); every tile in a row stretches to the tallest, so rows stay even. */
+.kpi-card { background: var(--ft-card); border: 1px solid var(--ft-border); border-radius: var(--ft-radius); padding: 0.9rem 0.95rem 0.8rem;
+            min-height: 176px; display: flex; flex-direction: column; box-shadow: none;
+            transition: box-shadow .15s ease, transform .15s ease; }
+.kpi-card > * { flex-shrink: 0; }  /* never squash the note; the tile grows taller instead */
+.kpi-grid > * { display: flex; min-width: 0; }      /* grid cells (wrappers) stretch to the row height... */
+.kpi-grid > * > .kpi-card { flex: 1 1 auto; min-width: 0; }  /* ...and the tile fills its cell */
+.kpi-head { display: flex; align-items: center; gap: 0.55rem; min-height: 36px; }
+.kpi-icon { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+            font-size: 0.95rem; flex-shrink: 0; }
+.kpi-label { color: var(--ft-ink-2); font-size: 0.8rem; font-weight: 600; line-height: 1.2;
+             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.kpi-value { font-size: 1.75rem; font-weight: 700; line-height: 1.05; margin-top: 0.7rem; letter-spacing: -0.02em; }
+.kpi-unit { font-size: 0.85rem; font-weight: 500; color: var(--ft-ink-3); margin-left: 0.2rem; letter-spacing: 0; }
+.kpi-note { color: var(--ft-ink-3); font-size: 0.74rem; line-height: 1.3; margin-top: 0.3rem;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (prefers-reduced-motion: reduce) { .kpi-card { transition: none; } }
+.kpi-bar { height: 6px; border-radius: 3px; background: #e9ecef; margin-top: 0.7rem; position: relative; }
+.kpi-bar > span { display: block; height: 100%; border-radius: 3px; background: var(--ft-link); }
+.kpi-bar > i { position: absolute; top: -4px; width: 2px; height: 14px; background: #a05a00; }
+.tone-accent .kpi-icon { background: var(--ft-accent-soft); color: var(--ft-accent); }
+.tone-blue .kpi-icon { background: #e1eefb; color: #1a5fb4; }
+.tone-amber .kpi-icon { background: #fdf0d5; color: #a86b00; }
+.tone-red .kpi-icon { background: #fbe3e3; color: #c42f2f; }
+.tone-purple .kpi-icon { background: #efe8fb; color: #6b45c4; }
+.value-blue { color: var(--ft-link); }
+.value-red { color: #c42f2f; }
+.value-accent { color: var(--ft-accent); }
+
+/* Legacy stat tiles used on some pages: same look as KPI cards */
+.stat-card { border: 1px solid var(--ft-border); border-radius: var(--ft-radius); box-shadow: none; }
+
+/* ---------------------------------------------------------- weekly facility calendar */
+.calendar-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.5rem; }
+@media (max-width: 991.98px) { .calendar-week { grid-template-columns: 1fr; } }
 .calendar-day .card-body { min-height: 6rem; }
-.cal-event {
-  font-size: 0.8rem;
-  border-left: 4px solid var(--bs-primary);
-  background: var(--bs-primary-bg-subtle);
-  color: var(--bs-body-color);
-  border-radius: 0.25rem;
-  padding: 0.25rem 0.4rem;
-  margin-bottom: 0.35rem;
-}
+.cal-event { font-size: 0.8rem; border-left: 4px solid var(--bs-primary); background: var(--bs-primary-bg-subtle);
+             color: var(--bs-body-color); border-radius: 0.35rem; padding: 0.25rem 0.4rem; margin-bottom: 0.35rem; }
 .cal-approved { border-left-color: var(--bs-success); background: var(--bs-success-bg-subtle); }
 .cal-pending { border-left-color: var(--bs-warning); background: var(--bs-warning-bg-subtle); }
 .cal-maintenance { border-left-color: var(--bs-secondary); background: var(--bs-secondary-bg-subtle); }
-.legend-dot {
-  display: inline-block;
-  width: 0.7rem;
-  height: 0.7rem;
-  border-radius: 50%;
-  vertical-align: middle;
-}
+.legend-dot { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 50%; vertical-align: middle; }
 
-/* Risk priority (status palette: always paired with an icon and a text label) */
+/* ---------------------------------------------------------- risk priority & matrix (status palette + icon + label) */
 .prio { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; font-weight: 600;
         padding: 0.15rem 0.5rem; border-radius: 999px; color: #0b0b0b; white-space: nowrap; }
 .prio-high { background: #f6d2d2; box-shadow: inset 3px 0 0 #d03b3b; }
@@ -44,10 +243,8 @@
 .prio-high .bi { color: #d03b3b; }
 .prio-medium .bi { color: #c4592f; }
 .prio-low .bi { color: #9a6a00; }
-
-/* Likelihood x impact matrix */
 .risk-matrix { border-collapse: separate; border-spacing: 3px; }
-.risk-matrix td { width: 3.4rem; height: 2.6rem; text-align: center; border-radius: 6px; font-weight: 600; color: #0b0b0b; }
+.risk-matrix td { width: 3.4rem; height: 2.6rem; text-align: center; border-radius: 8px; font-weight: 600; color: #0b0b0b; }
 .risk-matrix td.band-low { background: #fff7e3; }
 .risk-matrix td.band-medium { background: #fcebe3; }
 .risk-matrix td.band-high { background: #f9e1e1; }
@@ -57,8 +254,58 @@
 .risk-matrix td a { color: inherit; text-decoration: none; display: block; line-height: 2.6rem; }
 .risk-matrix th { font-weight: 500; font-size: 0.75rem; color: #898781; text-align: center; }
 
-/* Notification dropdown */
-.notif-menu { width: 22rem; max-width: calc(100vw - 2rem); }
+/* ---------------------------------------------------------- notifications */
+.notif-menu { width: 22rem; max-width: calc(100vw - 2rem); border-radius: 12px; overflow: hidden; }
 .notif-item { display: flex; gap: 0.6rem; align-items: flex-start; white-space: normal; padding: 0.55rem 1rem; }
-.notif-item.unread { background: var(--bs-primary-bg-subtle); }
+.notif-item.unread { background: #eef5ff; }
 .notif-icon { font-size: 1rem; line-height: 1.4; flex-shrink: 0; }
+
+/* KPI card grid: 1 → 2 → 3 per row, and 6 in a row only when there is room for readable labels */
+/* Columns follow the width of the CONTENT AREA (container query), not the window, because the sidebar
+   takes space: 2 per row on phones, 3 on tablets, then 6 (or 4) once each square is ~150px+ wide. */
+.app-content { container-type: inline-size; }
+.kpi-grid { display: grid; gap: 0.85rem; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 1.5rem; }
+@container (min-width: 520px) { .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (min-width: 640px) { .kpi-grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@container (min-width: 960px) { .kpi-grid.six { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@container (min-width: 960px) { .kpi-grid.four { grid-template-columns: repeat(4, minmax(0, 190px)); } }
+
+/* "See more" pill links: card headers, KPI cards, dropdown footers */
+.link-chip { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.3rem 0.55rem 0.3rem 0.8rem;
+             border-radius: 999px; background: var(--ft-accent-soft); color: var(--ft-accent-ink);
+             font-size: 0.82rem; font-weight: 600; line-height: 1.2; white-space: nowrap;
+             transition: background-color .15s ease, color .15s ease; }
+.link-chip .bi { font-size: 0.95em; transition: transform .15s ease; }
+.link-chip:hover, .link-chip:focus-visible { background: var(--ft-accent); color: #fff; text-decoration: none; }
+.link-chip:hover .bi { transform: translateX(2px); }
+.link-chip:focus-visible { outline: 0; box-shadow: 0 0 0 .2rem var(--ft-accent-ring); }
+.card-header .link-chip { margin: -0.15rem 0; }
+.card-header.d-flex { align-items: center; gap: 0.75rem; }
+.kpi-card .link-chip { align-self: flex-start; margin-top: auto; font-size: 0.74rem; padding: 0.22rem 0.45rem 0.22rem 0.65rem; }
+.kpi-card .kpi-note { margin-bottom: 0.55rem; }
+@media (prefers-reduced-motion: reduce) { .link-chip, .link-chip .bi { transition: none; } .link-chip:hover .bi { transform: none; } }
+
+/* Chart legend swatch (line series) */
+.legend-swatch-line { display: inline-block; width: 16px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+
+/* ---------------------------------------------------------- sign-in: a building directory sign */
+.signin-wrap { max-width: 400px; margin: 7vh auto 2rem; }
+.signin-sign { background: var(--ft-card); border: 1px solid var(--ft-border); border-radius: var(--ft-radius); overflow: hidden; }
+.signin-plate { background: var(--ft-accent); color: #fff; padding: 1.75rem 1.75rem 1.5rem;
+                box-shadow: inset 0 -4px 0 rgba(0, 0, 0, .16); }
+.signin-mark { display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 6px;
+               border: 2px solid rgba(255, 255, 255, .55); font-size: 1.3rem; margin-bottom: 0.9rem; }
+.signin-name { font-size: 2.1rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1; margin: 0; }
+.signin-sub { margin: 0.45rem 0 0; font-size: 0.95rem; color: rgba(255, 255, 255, .88); }
+.signin-body { padding: 1.5rem 1.75rem 1.75rem; }
+.signin-body .form-label { font-weight: 600; }
+.signin-help { text-align: center; font-size: 0.85rem; color: var(--ft-ink-3); margin-top: 1rem; }
+
+/* Facility status as quiet text + icon (the plate already carries the color) */
+.status-tag { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+.status-ok { color: var(--ft-accent); }
+.status-warn { color: #8a5a00; }
+.status-off { color: var(--ft-ink-3); }
+
+/* A column that holds a KPI grid becomes its own size container, so tiles size to the column */
+.kpi-scope { container-type: inline-size; }

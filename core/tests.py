@@ -38,7 +38,9 @@ class DashboardTests(TestCase):
 
     def test_planner_sees_kpis_and_owned_risks(self):
         response = self.get("planner")
-        self.assertContains(response, "Utilization, last 28 days")
+        self.assertContains(response, "Campus Utilization")
+        self.assertContains(response, "Peak Use Window")
+        self.assertContains(response, 'class="insight')  # chart caption sentence
         self.assertContains(response, "risks I own")
         self.assertNotContains(response, "Awaiting your approval")
 

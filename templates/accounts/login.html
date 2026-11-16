@@ -1,33 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Log in{% endblock %}
 {% block content %}
-<div class="row justify-content-center mt-5">
-  <div class="col-12 col-sm-8 col-md-6 col-lg-4">
-    <div class="text-center mb-4">
-      <i class="bi bi-buildings text-primary" style="font-size: 3rem;"></i>
-      <h1 class="h4 mt-2 mb-0">FaciliTrack</h1>
-      <p class="text-secondary small">Campus Facility Usage Monitoring with Risk Analytics</p>
+<div class="signin-wrap">
+  <div class="signin-sign">
+    <div class="signin-plate">
+      <span class="signin-mark"><i class="bi bi-buildings" aria-hidden="true"></i></span>
+      <h1 class="signin-name">FaciliTrack</h1>
+      <p class="signin-sub">Campus facility usage and risk monitoring</p>
     </div>
-    <div class="card shadow-sm">
-      <div class="card-body p-4">
-        {% if form.errors %}
-        <div class="alert alert-danger py-2 small">{% for e in form.non_field_errors %}{{ e }}{% empty %}Invalid username or password.{% endfor %}</div>
-        {% endif %}
-        <form method="post" novalidate>
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ next }}">
-          <div class="mb-3">
-            <label class="form-label" for="id_username">Username</label>
-            <input class="form-control" type="text" name="username" id="id_username" value="{{ form.username.value|default:'' }}" autofocus autocomplete="username" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label" for="id_password">Password</label>
-            <input class="form-control" type="password" name="password" id="id_password" autocomplete="current-password" required>
-          </div>
-          <button type="submit" class="btn btn-primary w-100">Log in</button>
-        </form>
-      </div>
+    <div class="signin-body">
+      {% if form.errors %}
+      <div class="alert alert-danger py-2 small" role="alert">{% for e in form.non_field_errors %}{{ e }}{% empty %}The username or password is incorrect.{% endfor %}</div>
+      {% endif %}
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="mb-3">
+          <label class="form-label" for="id_username">Username</label>
+          <input class="form-control" type="text" name="username" id="id_username" value="{{ form.username.value|default:'' }}" autofocus autocomplete="username" required>
+        </div>
+        <div class="mb-4">
+          <label class="form-label" for="id_password">Password</label>
+          <input class="form-control" type="password" name="password" id="id_password" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg w-100">Log in</button>
+      </form>
     </div>
   </div>
+  <p class="signin-help">Forgot your password? Ask a FaciliTrack administrator to issue a temporary one.</p>
 </div>
 {% endblock %}

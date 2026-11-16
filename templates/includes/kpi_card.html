@@ -1,0 +1,18 @@
+{% comment %}
+KPI card. Parameters: tone (accent|blue|amber|red|purple), icon (bootstrap icon name), label, value,
+unit (optional), value_tone (optional: blue|red|accent), note, url (optional), bar (optional 0-100), mark (optional 0-100)
+{% endcomment %}
+<div class="kpi-card tone-{{ tone|default:'accent' }}">
+  <div class="kpi-head">
+    <span class="kpi-icon"><i class="bi bi-{{ icon }}"></i></span>
+    <span class="kpi-label" title="{{ label }}">{{ label }}</span>
+  </div>
+  <div class="kpi-value {% if value_tone %}value-{{ value_tone }}{% endif %}">{{ value }}{% if unit %}<span class="kpi-unit">{{ unit }}</span>{% endif %}</div>
+  {% if bar is not None and bar != "" %}
+  <div class="kpi-bar" role="img" aria-label="{{ bar }} percent{% if mark %}, target {{ mark }} percent{% endif %}">
+    <span style="width: {{ bar }}%"></span>{% if mark %}<i style="left: {{ mark }}%"></i>{% endif %}
+  </div>
+  {% endif %}
+  <div class="kpi-note" title="{{ note }}">{{ note }}</div>
+  {% if url %}<a href="{{ url }}" class="link-chip" aria-label="View {{ label }}">View <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
+</div>

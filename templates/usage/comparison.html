@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Scheduled vs Actual{% endblock %}
+{% block page_title %}Scheduled vs actual use{% endblock %}
 {% block content %}
-<h1 class="h3 mb-3">Scheduled vs actual use</h1>
 
 <form method="get" class="card card-body mb-3 py-3" novalidate>
   <div class="row g-2 align-items-end">
@@ -53,7 +54,7 @@
       <tbody>
       {% for s in report.summaries %}
         <tr>
-          <td><a href="{% url 'facilities:detail' s.facility.pk %}" class="text-decoration-none">{{ s.facility.facility_code }}</a></td>
+          <td><a href="{% url 'facilities:detail' s.facility.pk %}" class="text-decoration-none">{{ s.facility|plate }}</a></td>
           <td class="text-end">{{ s.sessions }}</td>
           <td class="text-end text-success">{{ s.used }}</td>
           <td class="text-end text-danger">{{ s.no_show }}</td>
@@ -88,7 +89,7 @@
       {% for row in report.detail_rows %}
         <tr>
           <td class="text-nowrap small">{{ row.session.start_at|date:"D M d" }} {{ row.session.start_at|time:"H:i" }}–{{ row.session.end_at|time:"H:i" }}</td>
-          <td>{{ row.session.facility.facility_code }}</td>
+          <td>{{ row.session.facility|plate }}</td>
           <td class="small">{{ row.session.label }}</td>
           <td class="text-end">{{ row.session.expected }}</td>
           <td class="text-end {% if row.over_capacity %}text-danger fw-semibold{% endif %}">{{ row.headcount|default_if_none:"—" }}</td>
@@ -111,7 +112,7 @@
       {% for r in report.unscheduled %}
         <tr>
           <td class="small">{{ r.start_at|date:"D M d" }} {{ r.start_at|time:"H:i" }}–{{ r.end_at|time:"H:i" }}</td>
-          <td>{{ r.facility.facility_code }}</td>
+          <td>{{ r.facility|plate }}</td>
           <td class="text-end {% if r.over_capacity %}text-danger fw-semibold{% endif %}">{{ r.headcount|default_if_none:"—" }}</td>
           <td><span class="badge text-bg-light border">{{ r.get_source_display }}</span></td>
         </tr>

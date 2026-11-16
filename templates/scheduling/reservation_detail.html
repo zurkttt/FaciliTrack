@@ -58,7 +58,7 @@
           <label class="form-label" for="{{ review_form.remarks.id_for_label }}">Remarks (optional)</label>
           {{ review_form.remarks }}
           <div class="d-flex gap-2 mt-3">
-            <button type="submit" formaction="{% url 'scheduling:reservation_approve' reservation.pk %}" class="btn btn-success" {% if blocking %}disabled{% endif %}>
+            <button type="submit" formaction="{% url 'scheduling:reservation_approve' reservation.pk %}" class="btn btn-primary" {% if blocking %}disabled{% endif %}>
               <i class="bi bi-check-lg"></i> Approve
             </button>
             <button type="submit" formaction="{% url 'scheduling:reservation_reject' reservation.pk %}" class="btn btn-outline-danger">
@@ -70,7 +70,7 @@
     </div>
     {% endif %}
 
-    <div class="d-flex flex-wrap gap-2">
+    <div class="d-flex flex-wrap justify-content-between gap-2">
       <a href="{% url 'scheduling:facility_calendar' reservation.facility.pk %}?week={{ reservation.start_at|date:'Y-m-d' }}" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-calendar-week"></i> View facility calendar
       </a>

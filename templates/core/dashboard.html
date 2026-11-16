@@ -1,65 +1,90 @@
 {% extends "base.html" %}
+{% load static ui %}
 {% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}{% now "l, F j, Y" %}{% endblock %}
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-end mb-3 gap-2">
-  <div>
-    <h1 class="h3 mb-0">Good {% now "A" as ampm %}{% if ampm == "AM" %}morning{% else %}afternoon{% endif %}, {{ user.first_name|default:user.username }}</h1>
-    <p class="text-secondary mb-0 small">{% now "l, F j, Y" %} · {{ user.get_role_display }}</p>
+
+{% if can_see_analytics and kpi %}
+<div class="kpi-grid six">
+  <div class="col">{% url 'analytics:dashboard' as u %}
+    {% include "includes/kpi_card.html" with tone="accent" icon="activity" label="Campus Utilization" value=kpi.rate|floatformat:1 unit="%" note="of available room-hours used in the last 28 days" url=u %}
   </div>
-  <div class="d-flex flex-wrap gap-2">
-    <a href="{% url 'scheduling:availability' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-search"></i> Find a room</a>
-    <a href="{% url 'scheduling:reservation_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-calendar-plus"></i> Request a room</a>
+  <div class="col">
+    {% include "includes/kpi_card.html" with tone="blue" icon="speedometer2" label="Booked Capacity" value=kpi.scheduled_rate|floatformat:0 unit="%" value_tone="blue" bar=kpi.scheduled_rate|floatformat:0 mark=limits.high|floatformat:0 note="scheduled by classes and approved reservations" url=u %}
+  </div>
+  <div class="col">
+    {% include "includes/kpi_card.html" with tone="amber" icon="clock" label="Peak Use Window" value=busiest_hour|default:"—" note="most common busiest hour in the last 28 days" %}
+  </div>
+  {% if can_see_risks %}
+  <div class="col">{% url 'risks:register' as ru %}
+    {% include "includes/kpi_card.html" with tone="red" icon="shield-exclamation" label="High-Priority Risks" value=high_risks unit="open" value_tone="red" note=risk_note url=ru|add:"?priority=HIGH" %}
+  </div>
+  {% endif %}
+  <div class="col">{% url 'analytics:dashboard' as u2 %}
+    {% include "includes/kpi_card.html" with tone="red" icon="exclamation-triangle" label="Below Target" value=below_target unit="rooms" value_tone="red" note=below_target_note url=u2 %}
+  </div>
+  <div class="col">
+    {% include "includes/kpi_card.html" with tone="purple" icon="people" label="Average Seat Occupancy" value=kpi.occupancy|floatformat:0|default:"—" unit="%" value_tone="blue" note="of capacity when rooms are in use and counted" url=u2 %}
   </div>
 </div>
-
-{% if can_see_analytics or can_see_risks %}
-<div class="row g-3 mb-3">
-  {% if kpi %}
-  <div class="col-6 col-lg-3"><a href="{% url 'analytics:dashboard' %}" class="card stat-card h-100 text-decoration-none text-body"><div class="card-body">
-    <div class="text-secondary small">Utilization, last {{ kpi_days }} days</div>
-    <div class="fs-2 fw-semibold">{{ kpi.rate|floatformat:1 }}%</div>
-    <div class="small text-secondary">{{ kpi.scheduled_rate|floatformat:1 }}% scheduled</div>
-  </div></a></div>
-  <div class="col-6 col-lg-3"><a href="{% url 'analytics:dashboard' %}" class="card stat-card h-100 text-decoration-none text-body"><div class="card-body">
-    <div class="text-secondary small">Average seat occupancy</div>
-    <div class="fs-2 fw-semibold">{% if kpi.occupancy is not None %}{{ kpi.occupancy|floatformat:0 }}%{% else %}—{% endif %}</div>
-    <div class="small text-secondary">of capacity when in use</div>
-  </div></a></div>
-  {% endif %}
-  {% if can_see_risks %}
-  <div class="col-6 col-lg-3"><a href="{% url 'risks:register' %}?priority=HIGH" class="card stat-card h-100 text-decoration-none text-body"><div class="card-body">
-    <div class="text-secondary small">High-priority risks</div>
-    <div class="fs-2 fw-semibold {% if high_risks %}text-danger{% endif %}">{{ high_risks }}</div>
-    <div class="small text-secondary">{{ open_risks }} active in total</div>
-  </div></a></div>
-  {% endif %}
-  {% if is_approver %}
-  <div class="col-6 col-lg-3"><a href="{% url 'scheduling:reservation_list' %}" class="card stat-card h-100 text-decoration-none text-body"><div class="card-body">
-    <div class="text-secondary small">Requests awaiting approval</div>
-    <div class="fs-2 fw-semibold">{{ pending_count }}</div>
-    <div class="small text-secondary">upcoming</div>
-  </div></a></div>
-  {% elif is_usage_staff %}
-  <div class="col-6 col-lg-3"><a href="{% url 'usage:attendance' %}" class="card stat-card h-100 text-decoration-none text-body"><div class="card-body">
-    <div class="text-secondary small">Today's sessions to confirm</div>
-    <div class="fs-2 fw-semibold">{{ unconfirmed_today }}</div>
-    <div class="small text-secondary">of {{ sessions_today }} started so far</div>
-  </div></a></div>
-  {% endif %}
+{% else %}
+<div class="kpi-grid">
+  <div class="col">{% url 'scheduling:reservation_list' as u %}
+    {% include "includes/kpi_card.html" with tone="accent" icon="calendar-check" label="My Upcoming Reservations" value=my_reservations|length note="pending or approved" url=u|add:"?scope=mine" %}
+  </div>
+  <div class="col">{% url 'scheduling:availability' as u %}
+    {% include "includes/kpi_card.html" with tone="blue" icon="search" label="Need a Room?" value="Find" value_tone="blue" note="search free rooms by date, time and size" url=u %}
+  </div>
+  <div class="col">{% url 'notifications:list' as u %}
+    {% include "includes/kpi_card.html" with tone="amber" icon="bell" label="Unread Alerts" value=nav_unread_count note="approvals, cancellations and reminders" url=u %}
+  </div>
 </div>
 {% endif %}
 
-<div class="row g-3">
-  <div class="col-12 col-xl-7 d-flex flex-column gap-3">
+{% if trend %}
+<div class="card mb-4">
+  <div class="card-body p-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+      <div>
+        <h2 class="h5 fw-bold mb-0">Utilization by {{ trend_group|default:"building" }}{% if trend_group == "type" %} type{% endif %}</h2>
+        <div class="small text-secondary">% of available hours used, {{ trend_range }}</div>
+      </div>
+      <div class="d-flex flex-wrap gap-2">
+        <div class="segmented" role="group" aria-label="Group by">
+          {% for key, label in trend_groups.items %}<a href="?{% qs_replace 'group' key %}" class="{% if trend_group == key %}active{% endif %}">By {{ label }}</a>{% endfor %}
+        </div>
+        <div class="segmented" role="group" aria-label="Period">
+          {% for key, label in trend_periods.items %}<a href="?{% qs_replace 'period' key %}" class="{% if trend_period == key %}active{% endif %}">{{ label }}</a>{% endfor %}
+        </div>
+      </div>
+    </div>
+    {% if trend_insight %}<p class="insight mb-3">{{ trend_insight }}</p>{% endif %}
+    {% if trend.series %}
+    <div class="d-flex flex-wrap gap-3 small mb-2" aria-hidden="true">
+      {% for s in trend.series %}<span><span class="legend-swatch-line" data-slot="{{ forloop.counter0 }}"></span>{{ s.label }}</span>{% endfor %}
+    </div>
+    <div style="position: relative; height: 320px;">
+      <canvas id="trendChart" role="img" aria-label="Line chart of weekly utilization by {{ trend_group }}. The busiest periods are described above."></canvas>
+    </div>
+    {% else %}
+    <p class="text-secondary mb-0">No utilization data yet for this period.</p>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-12 col-xl-7 d-flex flex-column gap-4">
     {% if can_see_risks %}
     <div class="card">
-      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">Top risks</span><a href="{% url 'risks:register' %}" class="small">Risk register</a></div>
+      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">Top risks</span><a href="{% url 'risks:register' %}" class="link-chip">Risk register <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
       <ul class="list-group list-group-flush">
         {% for r in top_risks %}
-        <li class="list-group-item">
+        <li class="list-group-item px-3">
           <div class="d-flex flex-wrap align-items-center gap-2">
             {% include "includes/priority_badge.html" with p=r.priority %}
-            <a href="{% url 'risks:detail' r.pk %}" class="fw-semibold text-decoration-none">{{ r.get_category_display }} · {{ r.facility.facility_code }}</a>
+            <a href="{% url 'risks:detail' r.pk %}" class="fw-semibold text-decoration-none">{{ r.facility|plate }} {{ r.get_category_display }}</a>
             <span class="small text-secondary ms-auto">{% if r.owner %}{{ r.owner.get_full_name|default:r.owner.username }}{% else %}Unassigned{% endif %}</span>
           </div>
           <div class="small text-secondary text-truncate">{{ r.reason }}</div>
@@ -73,12 +98,12 @@
 
     {% if is_approver %}
     <div class="card">
-      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">Awaiting your approval</span><a href="{% url 'scheduling:reservation_list' %}" class="small">All requests</a></div>
+      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">Awaiting your approval <span class="badge rounded-pill text-bg-light border ms-1">{{ pending_count }}</span></span><a href="{% url 'scheduling:reservation_list' %}" class="link-chip">All requests <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
       <ul class="list-group list-group-flush">
         {% for r in pending %}
-        <li class="list-group-item d-flex flex-wrap justify-content-between gap-2">
-          <span><a href="{% url 'scheduling:reservation_detail' r.pk %}" class="text-decoration-none fw-semibold">{{ r.facility.facility_code }}</a> · {{ r.purpose }}
-            <span class="d-block small text-secondary">{{ r.start_at|date:"D, M d" }} {{ r.start_at|time:"H:i" }}–{{ r.end_at|time:"H:i" }} · {{ r.requested_by.get_full_name|default:r.requested_by.username }}</span></span>
+        <li class="list-group-item px-3 d-flex flex-wrap justify-content-between gap-2">
+          <span><a href="{% url 'scheduling:reservation_detail' r.pk %}" class="text-decoration-none fw-semibold">{{ r.facility|plate }}</a> {{ r.purpose }}
+            <span class="d-block small text-secondary">{{ r.start_at|date:"D, M d" }} {{ r.start_at|time:"H:i" }}–{{ r.end_at|time:"H:i" }}, requested by {{ r.requested_by.get_full_name|default:r.requested_by.username }}</span></span>
           <span class="small text-secondary">{{ r.expected_attendees }} people</span>
         </li>
         {% empty %}
@@ -89,11 +114,11 @@
     {% endif %}
 
     <div class="card">
-      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">My upcoming reservations</span><a href="{% url 'scheduling:reservation_list' %}?scope=mine" class="small">All mine</a></div>
+      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">My upcoming reservations</span><a href="{% url 'scheduling:reservation_list' %}?scope=mine" class="link-chip">All mine <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
       <ul class="list-group list-group-flush">
         {% for r in my_reservations %}
-        <li class="list-group-item d-flex justify-content-between gap-2">
-          <span><a href="{% url 'scheduling:reservation_detail' r.pk %}" class="text-decoration-none fw-semibold">{{ r.facility.facility_code }}</a> · {{ r.purpose }}
+        <li class="list-group-item px-3 d-flex justify-content-between gap-2">
+          <span><a href="{% url 'scheduling:reservation_detail' r.pk %}" class="text-decoration-none fw-semibold">{{ r.facility|plate }}</a> {{ r.purpose }}
             <span class="d-block small text-secondary">{{ r.start_at|date:"D, M d" }} {{ r.start_at|time:"H:i" }}–{{ r.end_at|time:"H:i" }}</span></span>
           {% include "includes/reservation_status_badge.html" %}
         </li>
@@ -104,15 +129,28 @@
     </div>
   </div>
 
-  <div class="col-12 col-xl-5 d-flex flex-column gap-3">
+  <div class="col-12 col-xl-5 d-flex flex-column gap-4">
+    {% if is_usage_staff %}
+    <div class="card">
+      <div class="card-body d-flex align-items-center gap-3">
+        <span class="kpi-icon" style="background:#e1eefb;color:#1a5fb4;"><i class="bi bi-clipboard-check"></i></span>
+        <div class="flex-grow-1">
+          <div class="fw-semibold">Today's sessions to confirm</div>
+          <div class="small text-secondary">{{ unconfirmed_today }} of {{ sessions_today }} started sessions have no usage record yet</div>
+        </div>
+        <a href="{% url 'usage:attendance' %}" class="btn btn-primary btn-sm">Open sheet</a>
+      </div>
+    </div>
+    {% endif %}
+
     {% if my_actions or my_risk_count %}
     <div class="card">
-      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">My actions</span>{% if my_risk_count %}<a href="{% url 'risks:register' %}?mine=1" class="small">{{ my_risk_count }} risk{{ my_risk_count|pluralize }} I own</a>{% endif %}</div>
+      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">My actions</span>{% if my_risk_count %}<a href="{% url 'risks:register' %}?mine=1" class="link-chip">{{ my_risk_count }} risk{{ my_risk_count|pluralize }} I own <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}</div>
       <ul class="list-group list-group-flush">
         {% for a in my_actions %}
-        <li class="list-group-item">
+        <li class="list-group-item px-3">
           <a href="{% url 'risks:detail' a.risk_id %}" class="text-decoration-none">{{ a.action }}</a>
-          <div class="small text-secondary">{{ a.risk.facility.facility_code }} · {% if a.due_date %}due {{ a.due_date|date:"M d" }}{% else %}no due date{% endif %}
+          <div class="small text-secondary">{{ a.risk.facility|plate }} {% if a.due_date %}due {{ a.due_date|date:"M d" }}{% else %}no due date{% endif %}
             {% if a.is_overdue %}<span class="text-danger fw-semibold"><i class="bi bi-alarm"></i> Overdue</span>{% endif %}</div>
         </li>
         {% empty %}
@@ -127,8 +165,8 @@
       <div class="card-header fw-semibold">Rooms not available</div>
       <ul class="list-group list-group-flush">
         {% for f in unavailable %}
-        <li class="list-group-item d-flex justify-content-between">
-          <a href="{% url 'facilities:detail' f.pk %}" class="text-decoration-none">{{ f.facility_code }} · {{ f.name }}</a>
+        <li class="list-group-item px-3 d-flex justify-content-between">
+          <a href="{% url 'facilities:detail' f.pk %}" class="text-decoration-none">{{ f|plate }} {{ f.name }}</a>
           <span class="small"><i class="bi bi-tools"></i> {{ f.get_status_display }}</span>
         </li>
         {% endfor %}
@@ -141,7 +179,7 @@
       <div class="card-header fw-semibold">Data freshness</div>
       <ul class="list-group list-group-flush small">
         {% for item in freshness %}
-        <li class="list-group-item d-flex justify-content-between gap-2">
+        <li class="list-group-item px-3 d-flex justify-content-between gap-2">
           <span>{{ item.label }}</span>
           <span class="{% if item.stale %}text-danger{% else %}text-secondary{% endif %} text-nowrap">
             {% if item.stale %}<i class="bi bi-exclamation-triangle"></i>{% else %}<i class="bi bi-check-circle"></i>{% endif %}
@@ -155,4 +193,48 @@
     {% endif %}
   </div>
 </div>
+{% if trend %}{{ trend|json_script:"trend-data" }}{{ trend_limits|json_script:"trend-limits" }}{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if trend.series %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="{% static 'js/charts.js' %}"></script>
+<script>
+(function () {
+  if (!window.Chart || !window.FTCharts) return;
+  const { PALETTE, INK, tooltip, thresholds, endLabels } = FTCharts;
+  const data = JSON.parse(document.getElementById("trend-data").textContent);
+  const limits = JSON.parse(document.getElementById("trend-limits").textContent);
+  document.querySelectorAll(".legend-swatch-line").forEach((el) => { el.style.background = PALETTE[+el.dataset.slot]; });
+  const few = data.series.length <= 4;
+  new Chart(document.getElementById("trendChart"), {
+    type: "line",
+    data: {
+      labels: data.labels,
+      datasets: data.series.map((s, i) => ({
+        label: s.label, data: s.values, borderColor: PALETTE[i], backgroundColor: PALETTE[i],
+        borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: "#ffffff", pointBorderWidth: 2, tension: 0, spanGaps: false,
+      })),
+    },
+    options: {
+      maintainAspectRatio: false,
+      layout: { padding: { right: few ? 64 : 36 } },
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { display: false }, tooltip,
+        thresholds: { axis: "y", lines: [[limits.low, limits.low + "%"], [limits.high, limits.high + "%"]] },
+        endLabels: { enabled: few },
+      },
+      scales: {
+        y: { min: 0, max: 100, title: { display: true, text: "% of available hours used" },
+             ticks: { callback: (t) => t + "%", stepSize: 20 }, grid: { color: INK.grid }, border: { color: INK.axis } },
+        x: { grid: { display: false }, border: { color: INK.axis } },
+      },
+    },
+    plugins: [thresholds, endLabels],
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

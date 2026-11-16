@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Buildings{% endblock %}
+{% block page_title %}Buildings{% endblock %}
 {% block content %}
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb small">
@@ -8,7 +9,7 @@
   </ol>
 </nav>
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0">Buildings</h1>
+  <div></div>
   <a href="{% url 'facilities:building_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add building</a>
 </div>
 <div class="card">

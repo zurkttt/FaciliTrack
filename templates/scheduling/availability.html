@@ -1,7 +1,10 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Find a Room{% endblock %}
+{% block page_title %}Reservations{% endblock %}
+{% block page_subtitle %}Requests and room search{% endblock %}
 {% block content %}
-<h1 class="h3 mb-3">Find an available room</h1>
+{% include "scheduling/_reservation_tabs.html" with tab="find" %}
 
 <form method="get" class="card card-body mb-3" novalidate>
   {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors|join:" " }}</div>{% endif %}
@@ -27,10 +30,10 @@
       <div class="card h-100">
         <div class="card-body">
           <div class="d-flex justify-content-between">
-            <h2 class="h6 mb-1"><a href="{% url 'facilities:detail' f.pk %}" class="text-decoration-none">{{ f.facility_code }}</a></h2>
+            <h2 class="h6 mb-1"><a href="{% url 'facilities:detail' f.pk %}" class="text-decoration-none">{{ f|plate }}</a></h2>
             <span class="badge text-bg-light border">{{ f.capacity }} seats</span>
           </div>
-          <div class="small text-secondary mb-2">{{ f.name }} · {{ f.building.code }} · {{ f.facility_type.name }}</div>
+          <div class="small text-secondary mb-2">{{ f.name }}, {{ f.facility_type.name|lower }} in {{ f.building.code }}</div>
           {% for w in item.warnings %}<div class="small text-warning-emphasis"><i class="bi bi-exclamation-triangle"></i> {{ w.message }}</div>{% endfor %}
         </div>
         <div class="card-footer bg-transparent d-flex gap-2">

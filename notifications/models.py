@@ -31,7 +31,7 @@ class Notification(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user} · {self.title}"
+        return f"{self.user}: {self.title}"
 
     @property
     def is_read(self):

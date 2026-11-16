@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}{{ facility.facility_code }} Calendar{% endblock %}
 {% block content %}
 <nav aria-label="breadcrumb">
@@ -10,11 +11,11 @@
 </nav>
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <h1 class="h3 mb-0">{{ facility.facility_code }} <span class="text-secondary fw-normal fs-5">{{ monday|date:"M d" }} – {{ sunday|date:"M d, Y" }}</span></h1>
-  <div class="btn-group btn-group-sm" role="group" aria-label="Week navigation">
-    <a class="btn btn-outline-secondary" href="?week={{ prev_week|date:'Y-m-d' }}"><i class="bi bi-chevron-left"></i> Previous</a>
-    <a class="btn btn-outline-secondary" href="?">This week</a>
-    <a class="btn btn-outline-secondary" href="?week={{ next_week|date:'Y-m-d' }}">Next <i class="bi bi-chevron-right"></i></a>
+  <h1 class="h3 mb-0">{{ facility|plate:"lg" }} <span class="text-secondary fw-normal fs-5">{{ monday|date:"M d" }} – {{ sunday|date:"M d, Y" }}</span></h1>
+  <div class="segmented" role="group" aria-label="Week navigation">
+    <a href="?week={{ prev_week|date:'Y-m-d' }}" aria-label="Previous week"><i class="bi bi-chevron-left"></i> Previous</a>
+    <a href="?">This week</a>
+    <a href="?week={{ next_week|date:'Y-m-d' }}" aria-label="Next week">Next <i class="bi bi-chevron-right"></i></a>
   </div>
 </div>
 
@@ -23,7 +24,7 @@
   <span><span class="legend-dot bg-success"></span> Approved reservation</span>
   <span><span class="legend-dot bg-warning"></span> Pending request</span>
   <span><span class="legend-dot bg-secondary"></span> Maintenance</span>
-  <span class="text-secondary">Open {{ facility.open_time|time:"H:i" }}–{{ facility.close_time|time:"H:i" }} · {{ facility.capacity }} seats</span>
+  <span class="text-secondary">Open {{ facility.open_time|time:"H:i" }}–{{ facility.close_time|time:"H:i" }}, {{ facility.capacity }} seats</span>
 </div>
 
 <div class="calendar-week">

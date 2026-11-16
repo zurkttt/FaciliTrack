@@ -5,9 +5,12 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Max, Q
 from django.shortcuts import render
 from django.utils import timezone
+from django.utils.html import format_html
 
 from analytics.models import MetricDefinition
-from analytics.queries import base_queryset, last_calculated, totals
+from analytics.queries import (
+    base_queryset, by_group, by_hour_of_week, by_period, by_period_and_group, last_calculated, thresholds, totals,
+)
 from analytics.views import ANALYTICS_VIEWERS, STALE_AFTER
 from facilities.models import Facility
 from risks.models import MitigationAction, Risk
@@ -56,13 +59,24 @@ def dashboard(request):
         by_priority = dict(active.values_list("priority").annotate(n=Count("id")))
         ctx["high_risks"] = by_priority.get("HIGH", 0)
         ctx["open_risks"] = sum(by_priority.values())
+        ctx["risk_note"] = (f"{by_priority.get('MEDIUM', 0)} medium and {by_priority.get('LOW', 0)} low; "
+                            f"{ctx['open_risks']} active in total")
 
     if ctx["can_see_analytics"]:
         definition = MetricDefinition.active()
         if definition:
+            yesterday = today - datetime.timedelta(days=1)
             start = today - datetime.timedelta(days=KPI_DAYS)
-            ctx["kpi"] = totals(base_queryset(definition, start, today - datetime.timedelta(days=1)))
+            ctx["kpi"] = totals(base_queryset(definition, start, yesterday))
             ctx["kpi_days"] = KPI_DAYS
+            ctx["limits"] = thresholds()
+            ctx["below_target"] = sum(
+                1 for r in by_group(base_queryset(definition, start, yesterday), "facility")
+                if r.rate is not None and r.rate < ctx["limits"]["low"]
+            )
+            ctx["below_target_note"] = f"under {ctx['limits']['low']:.0f}% utilization in the last {KPI_DAYS} days"
+            ctx["busiest_hour"] = _busiest_hour(start, yesterday)
+            ctx.update(_trend_chart(request, definition, today))
         ctx["freshness"] = _freshness(definition, now)
 
     if ctx["is_usage_staff"]:
@@ -73,6 +87,51 @@ def dashboard(request):
         ctx["unavailable"] = Facility.objects.filter(is_active=True).exclude(status=Facility.Status.AVAILABLE)
 
     return render(request, "core/dashboard.html", ctx)
+
+
+TREND_GROUPS = {"building": "building", "type": "facility type", "department": "department"}
+TREND_PERIODS = {"week": ("Weekly", 12 * 7), "month": ("Monthly", 365)}
+
+
+def _trend_chart(request, definition, today):
+    """Utilization over time per group, plus a one-sentence insight (like the chart's caption)."""
+    group = request.GET.get("group") if request.GET.get("group") in TREND_GROUPS else "building"
+    period = request.GET.get("period") if request.GET.get("period") in TREND_PERIODS else "week"
+    days = TREND_PERIODS[period][1]
+    start, end = today - datetime.timedelta(days=days), today - datetime.timedelta(days=1)
+    qs = base_queryset(definition, start, end)
+    chart = by_period_and_group(qs, period, group)
+    overall = by_period(qs, period)
+
+    insight = ""
+    groups = [r for r in by_group(qs, group) if r.rate is not None]
+    if groups and overall:
+        top = max(groups, key=lambda r: r.rate)
+        peak = max((r for r in overall if r.rate is not None), key=lambda r: r.rate, default=None)
+        word = TREND_GROUPS[group]
+        insight = format_html(
+            "<strong>{}</strong> was the busiest {} at <strong>{}%</strong> utilization. "
+            "Campus-wide use peaked in <strong>{}</strong> at <strong>{}%</strong>; "
+            "the average for the period was <strong>{}%</strong> against a target of at least {}%.",
+            top.label, word, f"{top.rate:.0f}",
+            peak.label.replace("Wk of ", "the week of ") if peak else "—", f"{peak.rate:.0f}" if peak else "—",
+            f"{totals(qs).rate or 0:.0f}", f"{thresholds()['low']:.0f}",
+        )
+    return {
+        "trend": chart, "trend_group": group, "trend_period": period, "trend_insight": insight,
+        "trend_groups": TREND_GROUPS, "trend_periods": {k: v[0] for k, v in TREND_PERIODS.items()},
+        "trend_range": f"{start:%b %d} – {end:%b %d, %Y}", "trend_limits": thresholds(),
+    }
+
+
+def _busiest_hour(start, end):
+    """Hour of day with the most facility-hours of use (the 'peak window')."""
+    grid = by_hour_of_week(start, end, Facility.objects.filter(is_active=True))
+    per_hour = [sum(day[h] for day in grid) for h in range(24)]
+    if not any(per_hour):
+        return None
+    hour = max(range(24), key=lambda h: per_hour[h])
+    return datetime.time(hour).strftime("%I %p").lstrip("0")
 
 
 def _freshness(definition, now):

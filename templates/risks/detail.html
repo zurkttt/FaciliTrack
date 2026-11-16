@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Risk #{{ risk.pk }}{% endblock %}
 {% block content %}
 <nav aria-label="breadcrumb">
@@ -10,11 +11,11 @@
 
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
   <div>
-    <h1 class="h3 mb-1">{{ risk.get_category_display }} · <a href="{% url 'facilities:detail' risk.facility.pk %}" class="text-decoration-none">{{ risk.facility.facility_code }}</a></h1>
+    <h1 class="h3 mb-1"><a href="{% url 'facilities:detail' risk.facility.pk %}" class="text-decoration-none">{{ risk.facility|plate:"lg" }}</a> {{ risk.get_category_display }}</h1>
     <div class="d-flex flex-wrap align-items-center gap-2">
       {% include "includes/priority_badge.html" with p=risk.priority %}
       <span class="badge text-bg-light border">{{ risk.get_status_display }}</span>
-      <span class="small text-secondary">{% if risk.auto_detected %}Detected automatically{% else %}Raised manually{% endif %} on {{ risk.detected_at|date:"M d, Y" }}{% if risk.last_detected_at %} · last confirmed {{ risk.last_detected_at|date:"M d, H:i" }}{% endif %}</span>
+      <span class="small text-secondary">{% if risk.auto_detected %}Detected automatically{% else %}Raised manually{% endif %} on {{ risk.detected_at|date:"M d, Y" }}{% if risk.last_detected_at %}; last confirmed {{ risk.last_detected_at|date:"M d, H:i" }}{% endif %}</span>
     </div>
   </div>
 </div>
@@ -55,7 +56,7 @@
             <div class="{% if a.status == 'DONE' %}text-decoration-line-through text-secondary{% endif %}">{{ a.action }}</div>
             <div class="small text-secondary">
               {% if a.assigned_to %}{{ a.assigned_to.get_full_name|default:a.assigned_to.username }}{% else %}Unassigned{% endif %}
-              {% if a.due_date %} · due {{ a.due_date|date:"M d, Y" }}{% endif %}
+              {% if a.due_date %}, due {{ a.due_date|date:"M d, Y" }}{% endif %}
               {% if a.is_overdue %} <span class="text-danger fw-semibold"><i class="bi bi-alarm"></i> Overdue</span>{% endif %}
             </div>
           </div>

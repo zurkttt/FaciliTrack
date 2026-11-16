@@ -1,13 +1,14 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Attendance Sheet{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
   <h1 class="h3 mb-0">Attendance sheet <span class="text-secondary fw-normal fs-5">{{ day|date:"l, M d, Y" }}</span></h1>
   <div class="d-flex flex-wrap gap-2">
-    <div class="btn-group btn-group-sm" role="group" aria-label="Day navigation">
-      <a class="btn btn-outline-secondary" href="?date={{ prev_day|date:'Y-m-d' }}&building={{ building_id }}"><i class="bi bi-chevron-left"></i></a>
-      <a class="btn btn-outline-secondary" href="?building={{ building_id }}">Today</a>
-      <a class="btn btn-outline-secondary" href="?date={{ next_day|date:'Y-m-d' }}&building={{ building_id }}"><i class="bi bi-chevron-right"></i></a>
+    <div class="segmented" role="group" aria-label="Day navigation">
+      <a href="?date={{ prev_day|date:'Y-m-d' }}&building={{ building_id }}" aria-label="Previous day"><i class="bi bi-chevron-left"></i></a>
+      <a href="?building={{ building_id }}">Today</a>
+      <a href="?date={{ next_day|date:'Y-m-d' }}&building={{ building_id }}" aria-label="Next day"><i class="bi bi-chevron-right"></i></a>
     </div>
     <form method="get" class="d-flex gap-2">
       <input type="hidden" name="date" value="{{ day|date:'Y-m-d' }}">
@@ -31,11 +32,11 @@
       {% with s=row.session %}
         <tr>
           <td class="text-nowrap">{{ s.start_at|time:"H:i" }}–{{ s.end_at|time:"H:i" }}</td>
-          <td><a href="{% url 'facilities:detail' s.facility.pk %}" class="text-decoration-none">{{ s.facility.facility_code }}</a></td>
+          <td><a href="{% url 'facilities:detail' s.facility.pk %}" class="text-decoration-none">{{ s.facility|plate }}</a></td>
           <td>{{ s.label }} <span class="badge text-bg-light border">{% if s.schedule %}Class{% else %}Reservation{% endif %}</span></td>
           <td class="text-end">{{ s.expected }}</td>
           <td>
-            {% if row.status == "used" %}<span class="badge text-bg-success">Used{% if row.headcount is not None %} · {{ row.headcount }}{% endif %}</span>
+            {% if row.status == "used" %}<span class="badge text-bg-success">Used{% if row.headcount is not None %}, {{ row.headcount }} people{% endif %}</span>
             {% elif row.status == "no_show" %}<span class="badge text-bg-danger">No-show</span>
             {% else %}<span class="badge text-bg-secondary">Not recorded</span>{% endif %}
           </td>

@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Users{% endblock %}
 {% block content %}
-<h1 class="h3 mb-3">Administration</h1>
 {% include "console/_tabs.html" with tab="users" %}
 
 <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
@@ -31,7 +30,7 @@
       <tbody>
       {% for u in users %}
         <tr>
-          <td><div class="fw-semibold">{{ u.get_full_name|default:u.username }}</div><div class="small text-secondary">{{ u.username }}{% if u.email %} · {{ u.email }}{% endif %}</div></td>
+          <td><div class="fw-semibold">{{ u.get_full_name|default:u.username }}</div><div class="small text-secondary">{{ u.username }}{% if u.email %}<br>{{ u.email }}{% endif %}</div></td>
           <td class="small">{{ u.get_role_display }}{% if u.is_superuser %} <span class="badge text-bg-dark">Superuser</span>{% endif %}</td>
           <td class="small">{{ u.department.code|default:"—" }}</td>
           <td class="small text-secondary">{% if u.last_login %}{{ u.last_login|date:"M d, Y" }}{% else %}Never{% endif %}</td>

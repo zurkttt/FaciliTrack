@@ -2,7 +2,7 @@
 import datetime
 from dataclasses import dataclass
 
-from django.db.models import Max, Sum
+from django.db.models import F, Max, Sum
 from django.db.models.functions import TruncMonth, TruncWeek
 from django.utils import timezone
 
@@ -127,6 +127,31 @@ def by_period(qs, period):
     rows = qs.annotate(bucket=trunc("period_start")).values("bucket").annotate(**_sums()).order_by("bucket")
     fmt = "Wk of %b %d" if period == "week" else "%b %Y"
     return [_row(r["bucket"], r["bucket"].strftime(fmt), r) for r in rows]
+
+
+def by_period_and_group(qs, period, group, limit=6):
+    """Series per group over time: ({'labels': [...], 'series': [{'label', 'values', 'rate'}...]}).
+
+    Groups are ordered by label (stable, so colors follow the entity, not its rank); only the
+    `limit` groups with the most used hours are kept so the chart stays readable.
+    """
+    key_field, label_field, _ = GROUPINGS[group]
+    trunc = PERIODS[period]
+    base = qs.annotate(bucket=trunc("period_start")) if trunc else qs.annotate(bucket=F("period_start"))
+    rows = base.values("bucket", label_field).annotate(**_sums()).order_by("bucket")
+    buckets = sorted({r["bucket"] for r in rows})
+    fmt = {"day": "%b %d", "week": "Wk %b %d", "month": "%b %Y"}[period]
+    totals_by_group, cells = {}, {}
+    for r in rows:
+        name = r[label_field] or "(none)"
+        totals_by_group[name] = totals_by_group.get(name, 0) + float(r["used"] or 0)
+        avail = float(r["available"] or 0)
+        cells[(name, r["bucket"])] = round(float(r["used"] or 0) / avail * 100, 1) if avail else None
+    keep = sorted(sorted(totals_by_group, key=totals_by_group.get, reverse=True)[:limit])
+    return {
+        "labels": [b.strftime(fmt) for b in buckets],
+        "series": [{"label": name, "values": [cells.get((name, b)) for b in buckets]} for name in keep],
+    }
 
 
 def by_hour_of_week(start, end, facilities):

@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Usage Records{% endblock %}
+{% block page_title %}Usage records{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <h1 class="h3 mb-0">Usage records</h1>
+  <div></div>
   {% if can_edit %}
   <div class="d-flex flex-wrap gap-2">
     <a href="{% url 'usage:import' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-upload"></i> Import CSV</a>
@@ -48,7 +50,7 @@
       {% for r in records %}
         <tr>
           <td class="text-nowrap">{{ r.start_at|date:"M d" }} <span class="small text-secondary">{{ r.start_at|time:"H:i" }}–{{ r.end_at|time:"H:i" }}</span></td>
-          <td>{{ r.facility.facility_code }}</td>
+          <td>{{ r.facility|plate }}</td>
           <td class="small">{% if r.schedule %}{{ r.schedule.activity }}{% elif r.reservation %}{{ r.reservation.purpose }}{% else %}<span class="text-secondary">Unscheduled</span>{% endif %}</td>
           <td>{% if r.status == "USED" %}<span class="badge text-bg-success">Used</span>{% else %}<span class="badge text-bg-danger">No-show</span>{% endif %}</td>
           <td class="text-end {% if r.over_capacity %}text-danger fw-semibold{% endif %}">{{ r.headcount|default_if_none:"—" }}{% if r.over_capacity %} <i class="bi bi-exclamation-triangle" title="Over capacity"></i>{% endif %}</td>
@@ -57,7 +59,7 @@
           {% if can_edit %}
           <td class="text-end">
             <form method="post" action="{% url 'usage:record_delete' r.pk %}" onsubmit="return confirm('Delete this usage record?');">
-              {% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Delete"><i class="bi bi-trash"></i></button>
+              {% csrf_token %}<button class="btn btn-sm btn-outline-danger btn-icon" type="submit" aria-label="Delete" title="Delete"><i class="bi bi-trash"></i></button>
             </form>
           </td>
           {% endif %}

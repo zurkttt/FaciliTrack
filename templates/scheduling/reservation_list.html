@@ -1,19 +1,16 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Reservations{% endblock %}
+{% block page_title %}Reservations{% endblock %}
+{% block page_subtitle %}Requests and room search{% endblock %}
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <h1 class="h3 mb-0">Reservations</h1>
-  <div class="d-flex flex-wrap gap-2">
-    <a href="{% url 'scheduling:availability' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-search"></i> Find a room</a>
-    <a href="{% url 'scheduling:reservation_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> New request</a>
-  </div>
-</div>
+{% include "scheduling/_reservation_tabs.html" with tab="requests" %}
 
 <form method="get" class="d-flex flex-wrap gap-2 align-items-center mb-3">
   {% if is_approver %}
-  <div class="btn-group btn-group-sm" role="group" aria-label="Scope">
-    <a href="?scope=all" class="btn btn-outline-primary {% if scope == 'all' %}active{% endif %}">All requests</a>
-    <a href="?scope=mine" class="btn btn-outline-primary {% if scope == 'mine' %}active{% endif %}">My requests</a>
+  <div class="segmented" role="group" aria-label="Scope">
+    <a href="?scope=all" class="{% if scope == 'all' %}active{% endif %}">All requests</a>
+    <a href="?scope=mine" class="{% if scope == 'mine' %}active{% endif %}">My requests</a>
   </div>
   <input type="hidden" name="scope" value="{{ scope }}">
   {% endif %}
@@ -40,7 +37,7 @@
       {% for r in reservations %}
         <tr>
           <td class="text-nowrap"><a href="{% url 'scheduling:reservation_detail' r.pk %}" class="text-decoration-none">{{ r.start_at|date:"D, M d" }}<br><span class="small text-secondary">{{ r.start_at|time:"H:i" }}–{{ r.end_at|time:"H:i" }}</span></a></td>
-          <td>{{ r.facility.facility_code }}</td>
+          <td>{{ r.facility|plate }}</td>
           <td>{{ r.purpose }}</td>
           {% if is_approver %}<td class="small">{{ r.requested_by.get_full_name|default:r.requested_by.username }}</td>{% endif %}
           <td class="text-end {% if r.expected_attendees > r.facility.capacity %}text-danger fw-semibold{% endif %}">{{ r.expected_attendees }}</td>

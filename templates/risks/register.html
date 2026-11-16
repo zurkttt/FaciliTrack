@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% load ui %}
 {% block title %}Risk Register{% endblock %}
+{% block page_title %}Risk register{% endblock %}
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
   <div>
-    <h1 class="h3 mb-0">Risk register</h1>
     <div class="small text-secondary">
       Score = likelihood × impact (1–25): Low 1–7, Medium 8–14, High 15–25.
       {% if last_run %}Last detection run {{ last_run|date:"M d, H:i" }}.{% endif %}
@@ -20,28 +21,13 @@
 </div>
 
 <div class="row g-3 mb-3">
-  <div class="col-12 col-lg-7">
-    <div class="row g-3">
-      <div class="col-6 col-md-4"><div class="card stat-card h-100"><div class="card-body">
-        <div class="small text-secondary">High priority</div><div class="fs-2 fw-semibold">{{ high }}</div>
-        <a class="small" href="?priority=HIGH">View</a>
-      </div></div></div>
-      <div class="col-6 col-md-4"><div class="card stat-card h-100"><div class="card-body">
-        <div class="small text-secondary">Medium priority</div><div class="fs-2 fw-semibold">{{ medium }}</div>
-        <a class="small" href="?priority=MEDIUM">View</a>
-      </div></div></div>
-      <div class="col-6 col-md-4"><div class="card stat-card h-100"><div class="card-body">
-        <div class="small text-secondary">Low priority</div><div class="fs-2 fw-semibold">{{ low }}</div>
-        <a class="small" href="?priority=LOW">View</a>
-      </div></div></div>
-      <div class="col-6 col-md-6"><div class="card stat-card h-100"><div class="card-body">
-        <div class="small text-secondary">Overdue mitigation actions</div>
-        <div class="fs-2 fw-semibold {% if overdue_actions %}text-danger{% endif %}">{{ overdue_actions }}</div>
-      </div></div></div>
-      <div class="col-12 col-md-6"><div class="card stat-card h-100"><div class="card-body">
-        <div class="small text-secondary">Accepted, being monitored</div><div class="fs-2 fw-semibold">{{ accepted }}</div>
-        <a class="small" href="?status=ACCEPTED">View</a>
-      </div></div></div>
+  <div class="col-12 col-lg-7 kpi-scope">
+    <div class="kpi-grid mb-0">
+      <div>{% include "includes/kpi_card.html" with tone="red" icon="exclamation-octagon" label="High Priority" value=high value_tone="red" note="score 15 to 25" url="?priority=HIGH" %}</div>
+      <div>{% include "includes/kpi_card.html" with tone="amber" icon="exclamation-triangle" label="Medium Priority" value=medium note="score 8 to 14" url="?priority=MEDIUM" %}</div>
+      <div>{% include "includes/kpi_card.html" with tone="blue" icon="info-circle" label="Low Priority" value=low note="score 1 to 7" url="?priority=LOW" %}</div>
+      <div>{% if overdue_actions %}{% include "includes/kpi_card.html" with tone="red" icon="alarm" label="Overdue Actions" value=overdue_actions value_tone="red" note="mitigation actions past their due date" %}{% else %}{% include "includes/kpi_card.html" with tone="accent" icon="alarm" label="Overdue Actions" value=overdue_actions note="mitigation actions past their due date" %}{% endif %}</div>
+      <div>{% include "includes/kpi_card.html" with tone="purple" icon="eye" label="Accepted" value=accepted note="known risks being monitored, not acted on" url="?status=ACCEPTED" %}</div>
     </div>
   </div>
   <div class="col-12 col-lg-5">
@@ -75,39 +61,39 @@
 
 <form method="get" class="card card-body mb-3 py-3">
   <div class="row g-2 align-items-end">
-    <div class="col-6 col-md-2">
+    <div class="col-6 col-lg">
       <label class="form-label small mb-1" for="status">Status</label>
       <select id="status" name="status" class="form-select form-select-sm">
-        <option value="active" {% if status == "active" %}selected{% endif %}>Active (open, in review, mitigating)</option>
+        <option value="active" {% if status == "active" %}selected{% endif %}>Active (not closed)</option>
         <option value="all" {% if status == "all" %}selected{% endif %}>All</option>
         {% for v, l in statuses %}<option value="{{ v }}" {% if status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
       </select>
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 col-lg">
       <label class="form-label small mb-1" for="priority">Priority</label>
       <select id="priority" name="priority" class="form-select form-select-sm"><option value="">All</option>
         {% for v, l in priorities %}<option value="{{ v }}" {% if filters.priority == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
       </select>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col-6 col-lg">
       <label class="form-label small mb-1" for="category">Category</label>
       <select id="category" name="category" class="form-select form-select-sm"><option value="">All</option>
         {% for v, l in categories %}<option value="{{ v }}" {% if filters.category == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
       </select>
     </div>
-    <div class="col-6 col-md-2">
+    <div class="col-6 col-lg">
       <label class="form-label small mb-1" for="facility">Facility</label>
       <select id="facility" name="facility" class="form-select form-select-sm"><option value="">All</option>
         {% for f in facilities %}<option value="{{ f.pk }}" {% if filters.facility == f.pk|stringformat:"s" %}selected{% endif %}>{{ f.facility_code }}</option>{% endfor %}
       </select>
     </div>
-    <div class="col-6 col-md-1">
+    <div class="col-6 col-lg">
       <div class="form-check mb-1">
         <input class="form-check-input" type="checkbox" name="mine" value="1" id="mine" {% if filters.mine %}checked{% endif %}>
         <label class="form-check-label small" for="mine">Mine</label>
       </div>
     </div>
-    <div class="col-6 col-md-2 d-flex gap-2">
+    <div class="col-12 col-lg-auto d-flex gap-2">
       <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
       <a href="{% url 'risks:register' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
     </div>
@@ -123,7 +109,7 @@
         <tr>
           <td>{% include "includes/priority_badge.html" with p=r.priority %}</td>
           <td class="text-end" style="font-variant-numeric: tabular-nums;" title="Likelihood {{ r.likelihood }} × impact {{ r.impact }}">{{ r.score }}</td>
-          <td><a href="{% url 'facilities:detail' r.facility.pk %}" class="text-decoration-none">{{ r.facility.facility_code }}</a></td>
+          <td><a href="{% url 'facilities:detail' r.facility.pk %}" class="text-decoration-none">{{ r.facility|plate }}</a></td>
           <td>
             <a href="{% url 'risks:detail' r.pk %}" class="fw-semibold text-decoration-none">{{ r.get_category_display }}</a>
             {% if not r.auto_detected %}<span class="badge text-bg-light border ms-1">Manual</span>{% endif %}

@@ -57,9 +57,9 @@ Participant: __________________ Role: __________________ Date: __________ Facili
 | ID | Steps | Expected result | Pass / Fail | Remarks |
 |---|---|---|---|---|
 | V-01 (critical path) | Sign in. Look at the home page. | Your upcoming reservation "Thesis defense panel" is listed. There are no risk or approval sections. | | |
-| V-02 (critical path) | Open **Find a Room**. Pick a weekday next week, 13:00–14:00, 30 attendees. Search. | A list of available rooms appears, smallest suitable rooms first. Rooms with fewer than 30 seats are not listed. | | |
+| V-02 (critical path) | Open **Reservations**, then the **Find a Room** tab. Pick a weekday next week, 13:00–14:00, 30 attendees. Search. | A list of available rooms appears, smallest suitable rooms first. Rooms with fewer than 30 seats are not listed. | | |
 | V-03 (critical path) | Click **Reserve** on one result. Enter a purpose and submit. | The request is saved as **Pending**. The date, time and room are already filled in. | | |
-| V-04 | Open **Find a Room** and try to book ENG-CL1 next Monday 09:00–10:00 using **Request a room**. | The request is refused with a message that it overlaps a class. | | |
+| V-04 | Open **Reservations → New request** and try to book ENG-CL1 next Monday 09:00–10:00. | The request is refused with a message that it overlaps a class. | | |
 | V-05 | Try to open `/risks/` and `/reports/` by typing them in the address bar. | "Access denied" is shown for both. | | |
 
 ### Facilities staff: sign in as `facilities`

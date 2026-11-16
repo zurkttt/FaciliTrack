@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.utils.html import format_html
 from django.views.decorators.http import require_POST
 
 from accounts.models import User
@@ -88,6 +89,21 @@ def dashboard(request):
     trend = by_period(qs, d["period"])
     ranked = sorted((r for r in group_rows if r.rate is not None), key=lambda r: r.rate, reverse=True)
     calculated = last_calculated(definition)
+    insight = ""
+    if ranked:
+        word = GROUPINGS[d["group"]][2].lower()
+        plural = {"facility": "facilities", "building": "buildings", "facility type": "facility types",
+                  "department": "departments"}.get(word, word + "s")
+        low_n = sum(1 for r in group_rows if classify(r, limits) == "low")
+        high_n = sum(1 for r in group_rows if classify(r, limits) == "high")
+        insight = format_html(
+            "<strong>{}</strong> was the most used {} at <strong>{}%</strong>"
+            "{}. <strong>{}</strong> of {} {} were below the {}% target and <strong>{}</strong> {} in high demand.",
+            ranked[0].label, word, f"{ranked[0].rate:.1f}",
+            format_html("; <strong>{}</strong> the least at <strong>{}%</strong>", ranked[-1].label, f"{ranked[-1].rate:.1f}")
+            if len(ranked) > 1 else "",
+            low_n, len(group_rows), plural, f"{limits['low']:.0f}", high_n, "was" if high_n == 1 else "were",
+        )
     ctx.update(
         total=totals(qs),
         rows=[{"row": r, "band": classify(r, limits)} for r in group_rows],
@@ -106,6 +122,13 @@ def dashboard(request):
                        "scheduled": [_r(r.scheduled_rate) for r in ranked]},
             "limits": limits,
         },
+        insight=insight,
+        used_note=f"{totals(qs).used:,.0f} of {totals(qs).available:,.0f} available hours used",
+        gap_note=f"{(totals(qs).gap or 0):.1f} pts booked but not used",
+        range_note=(f"{sum(1 for r in group_rows if classify(r, limits) == 'low')} under {limits['low']:.0f}% and "
+                    f"{sum(1 for r in group_rows if classify(r, limits) == 'high')} high demand"),
+        groupings=[(k, v[2]) for k, v in GROUPINGS.items()],
+        periods=[("day", "Daily"), ("week", "Weekly"), ("month", "Monthly")],
         export_query=request.GET.urlencode(),
         recalc_form=RecalculateForm(initial={"start": d["start"], "end": d["end"]}),
     )
