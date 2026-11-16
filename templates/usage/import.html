@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Import Usage{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{% url 'usage:record_list' %}">Usage records</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Import</li>
+  </ol>
+</nav>
+<h1 class="h3 mb-3">Import usage logs</h1>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-5">
+    <div class="card h-100"><div class="card-body">
+      <form method="post" enctype="multipart/form-data" novalidate>
+        {% csrf_token %}
+        {% include "includes/form_fields.html" %}
+        <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-upload"></i> Validate and import</button>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-12 col-lg-7">
+    <div class="card h-100"><div class="card-body small">
+      <p class="fw-semibold mb-1">How it works</p>
+      <ul class="ps-3">
+        <li>Each row is one period of actual use, for example from a door-sensor export or a paper logbook.</li>
+        <li>Rows are linked automatically to the matching class or approved reservation. Rows with no match are recorded as unscheduled use.</li>
+        <li><strong>All or nothing:</strong> if any row has an error, nothing is imported.</li>
+        <li>Rows that overlap usage already recorded for the same room are rejected as possible duplicates.</li>
+      </ul>
+      <p class="mb-1"><strong>Required columns:</strong> <code>{{ required_columns|join:", " }}</code></p>
+      <p class="mb-2"><strong>Optional columns:</strong> <code>{{ optional_columns|join:", " }}</code> (status is <code>USED</code> or <code>NO_SHOW</code>; default <code>USED</code>)</p>
+      <a href="{% url 'usage:import_template' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download"></i> Download template</a>
+    </div></div>
+  </div>
+</div>
+
+{% if result %}{% include "includes/import_result.html" with item_label="usage record" %}{% endif %}
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Thresholds{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Administration</h1>
+{% include "console/_tabs.html" with tab="settings" %}
+<div class="row g-3">
+  <div class="col-12 col-xl-7">
+    <div class="card">
+      <div class="card-header fw-semibold">Risk and utilization thresholds</div>
+      <div class="card-body">
+        <p class="small text-secondary">These governed values drive the utilization status labels and every risk rule. Changes take effect at the next risk detection run and are recorded in the audit log with your reason.</p>
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% include "includes/form_fields.html" %}
+          <button type="submit" class="btn btn-primary mt-3">Save thresholds</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-5">
+    <div class="card">
+      <div class="card-header fw-semibold">Recent changes</div>
+      <ul class="list-group list-group-flush small">
+        {% for e in history %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between"><strong>{{ e.username }}</strong><span class="text-secondary">{{ e.created_at|date:"M d, Y H:i" }}</span></div>
+          <div class="fst-italic">{{ e.changes.reason }}</div>
+          {% for key, change in e.changes.items %}{% if key != "reason" %}<div class="text-secondary">{{ key }}: {{ change.old }} → {{ change.new }}</div>{% endif %}{% endfor %}
+        </li>
+        {% empty %}
+        <li class="list-group-item text-secondary">No changes recorded yet.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

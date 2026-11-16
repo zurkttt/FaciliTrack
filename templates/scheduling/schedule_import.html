@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Import Schedules{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{% url 'scheduling:schedule_list' %}">Class schedules</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Import</li>
+  </ol>
+</nav>
+<h1 class="h3 mb-3">Import class schedules</h1>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-5">
+    <div class="card h-100">
+      <div class="card-body">
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+          {% include "includes/form_fields.html" %}
+          <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-upload"></i> Validate and import</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-lg-7">
+    <div class="card h-100">
+      <div class="card-body small">
+        <p class="fw-semibold mb-1">How it works</p>
+        <ul class="ps-3">
+          <li>Every row is validated and checked for conflicts, including clashes between rows in the same file.</li>
+          <li><strong>All or nothing:</strong> if any row has an error, nothing is imported. Fix the rows listed and upload again.</li>
+          <li>Warnings (such as over-capacity classes) do not block the import.</li>
+          <li>Unknown course codes are created automatically as new activities.</li>
+        </ul>
+        <p class="mb-1"><strong>Required columns:</strong> <code>{{ required_columns|join:", " }}</code></p>
+        <p class="mb-2"><strong>Optional columns:</strong> <code>{{ optional_columns|join:", " }}</code></p>
+        <p class="mb-2">Day: <code>Mon</code>, <code>Monday</code> or <code>0</code>–<code>6</code> (0 = Monday). Time: <code>13:00</code> or <code>1:00 PM</code>. Date: <code>2026-08-10</code> or <code>08/10/2026</code>.</p>
+        <a href="{% url 'scheduling:schedule_import_template' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download"></i> Download template</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if result %}{% include "includes/import_result.html" with item_label="schedule" %}
+{% endif %}
+{% endblock %}

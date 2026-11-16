@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Metric Definitions{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{% url 'analytics:dashboard' %}">Utilization</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Metric definitions</li>
+  </ol>
+</nav>
+<h1 class="h3 mb-1">Utilization metric definitions</h1>
+<p class="text-secondary small mb-3">
+  Section 7.3: the institution must define what counts as available and used time. Definitions are versioned and never edited.
+  To change the rules, create a new version, get it approved, then activate it. Every stored metric records which version produced it.
+</p>
+
+<div class="row g-3">
+  <div class="col-12 col-xl-7">
+    <div class="card">
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="table-light"><tr><th>Version</th><th>Rules</th><th>Approved by</th><th></th></tr></thead>
+          <tbody>
+          {% for d in definitions %}
+            <tr>
+              <td class="fw-semibold text-nowrap">v{{ d.version }}{% if d.is_active %} <span class="badge text-bg-success">Active</span>{% endif %}<div class="small text-secondary fw-normal">{{ d.created_at|date:"M d, Y" }}</div></td>
+              <td class="small">
+                <div>{{ d.formula }}</div>
+                <div class="text-secondary">Operating days: {{ d.operating_days_display }}</div>
+                <div class="text-secondary">Maintenance {% if d.exclude_maintenance %}excluded from{% else %}included in{% endif %} available time · Reservations {% if d.count_reservations_as_use %}count{% else %}do not count{% endif %} as use</div>
+                {% if d.notes %}<div class="text-secondary fst-italic">{{ d.notes }}</div>{% endif %}
+              </td>
+              <td class="small">{{ d.approved_by|default:"—" }}</td>
+              <td class="text-end">
+                {% if not d.is_active %}
+                <form method="post" action="{% url 'analytics:activate_definition' d.pk %}"
+                      onsubmit="return confirm('Activate v{{ d.version }}? Dashboards will switch to it and the last {{ recalc_days }} days will be recalculated.');">
+                  {% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-primary">Activate</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="text-center text-secondary py-4">No definitions yet.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-5">
+    <div class="card">
+      <div class="card-header fw-semibold">New version</div>
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}<div class="alert alert-danger py-2">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+          {% for field in form %}
+          <div class="mb-3">
+            {% if field.name == "operating_days" %}
+              <div class="form-label">{{ field.label }}</div>
+              <div class="d-flex flex-wrap gap-3">
+                {% for cb in field %}<div class="form-check">{{ cb.tag }}<label class="form-check-label" for="{{ cb.id_for_label }}">{{ cb.choice_label }}</label></div>{% endfor %}
+              </div>
+            {% elif field.field.widget.input_type == "checkbox" %}
+              <div class="form-check">{{ field }}<label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+            {% else %}
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+              {{ field }}
+            {% endif %}
+            {% for e in field.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          <button type="submit" class="btn btn-primary">Create version</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

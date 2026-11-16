@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Facilities{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Facilities</h1>
+  {% if can_edit %}
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'facilities:building_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-building"></i> Buildings</a>
+    <a href="{% url 'facilities:type_list' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-tags"></i> Facility types</a>
+    <a href="{% url 'facilities:create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add facility</a>
+  </div>
+  {% endif %}
+</div>
+
+<form method="get" class="card card-body mb-3 py-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-3">
+      <label class="form-label small mb-1" for="q">Search</label>
+      <input type="search" id="q" name="q" value="{{ filters.q }}" class="form-control form-control-sm" placeholder="Code or name">
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1" for="building">Building</label>
+      <select id="building" name="building" class="form-select form-select-sm">
+        <option value="">All</option>
+        {% for b in buildings %}<option value="{{ b.pk }}" {% if filters.building == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.code }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1" for="type">Type</label>
+      <select id="type" name="type" class="form-select form-select-sm">
+        <option value="">All</option>
+        {% for t in types %}<option value="{{ t.pk }}" {% if filters.type == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1" for="status">Status</label>
+      <select id="status" name="status" class="form-select form-select-sm">
+        <option value="">All</option>
+        {% for value, label in statuses %}<option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-1">
+      <label class="form-label small mb-1" for="min_capacity">Min. seats</label>
+      <input type="number" min="1" id="min_capacity" name="min_capacity" value="{{ filters.min_capacity }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-12 col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+      <a href="{% url 'facilities:list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+  </div>
+  <div class="form-check mt-2">
+    <input class="form-check-input" type="checkbox" name="show" value="all" id="show_all" {% if filters.show == "all" %}checked{% endif %} onchange="this.form.submit()">
+    <label class="form-check-label small" for="show_all">Include inactive facilities</label>
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Code</th><th>Name</th><th>Building</th><th>Type</th><th class="text-end">Capacity</th><th>Hours</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+      {% for facility in facilities %}
+        <tr>
+          <td class="fw-semibold"><a href="{% url 'facilities:detail' facility.pk %}" class="text-decoration-none">{{ facility.facility_code }}</a></td>
+          <td>{{ facility.name }}</td>
+          <td>{{ facility.building.code }}{% if facility.floor %} <span class="text-secondary small">· Floor {{ facility.floor }}</span>{% endif %}</td>
+          <td>{{ facility.facility_type.name }}</td>
+          <td class="text-end">{{ facility.capacity }}</td>
+          <td class="small text-nowrap">{{ facility.open_time|time:"H:i" }}–{{ facility.close_time|time:"H:i" }}</td>
+          <td>{% include "includes/facility_status_badge.html" %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="text-center text-secondary py-4">No facilities match these filters.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
+  <span class="small text-secondary">{{ page_obj.paginator.count }} facilit{{ page_obj.paginator.count|pluralize:"y,ies" }}</span>
+  {% if is_paginated %}
+  <ul class="pagination pagination-sm mb-0">
+    {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.previous_page_number }}">Previous</a></li>{% endif %}
+    <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+    {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.next_page_number }}">Next</a></li>{% endif %}
+  </ul>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ spec.title }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{% url 'reports:index' %}">Reports</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ spec.title }}</li>
+  </ol>
+</nav>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">{% if data %}{{ data.title }}{% else %}{{ spec.title }}{% endif %}</h1>
+  {% if data %}
+  <div class="btn-group btn-group-sm" role="group" aria-label="Download">
+    <a class="btn btn-outline-primary" href="?{{ querystring }}&format=pdf"><i class="bi bi-filetype-pdf"></i> PDF</a>
+    <a class="btn btn-outline-primary" href="?{{ querystring }}&format=xlsx"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>
+    <a class="btn btn-outline-primary" href="?{{ querystring }}&format=csv"><i class="bi bi-filetype-csv"></i> CSV</a>
+  </div>
+  {% endif %}
+</div>
+
+<form method="get" class="card card-body mb-3 py-3" novalidate>
+  <div class="row g-2 align-items-end">
+    {% for field in form %}
+    <div class="col-6 col-md-3">
+      <label class="form-label small mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% for e in field.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+    </div>
+    {% endfor %}
+    <div class="col-6 col-md-2"><button type="submit" class="btn btn-primary btn-sm w-100">Update preview</button></div>
+  </div>
+</form>
+
+{% if data %}
+<div class="card mb-3">
+  <div class="card-body small">
+    {% for label, value in data.params %}<div><span class="fw-semibold">{{ label }}:</span> {{ value }}</div>{% endfor %}
+  </div>
+</div>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover align-middle mb-0" style="font-variant-numeric: tabular-nums;">
+      <thead class="table-light"><tr>{% for h, right in headers %}<th class="{% if right %}text-end{% endif %} text-nowrap">{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>{% for value, right in row %}<td class="{% if right %}text-end{% endif %} small">{{ value }}</td>{% endfor %}</tr>
+        {% empty %}
+        <tr><td colspan="{{ headers|length }}" class="text-center text-secondary py-4">No data for these parameters.</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if totals %}
+      <tfoot class="table-light fw-semibold"><tr>{% for value, right in totals %}<td class="{% if right %}text-end{% endif %} small">{{ value }}</td>{% endfor %}</tr></tfoot>
+      {% endif %}
+    </table>
+  </div>
+  {% if data.notes %}
+  <div class="card-footer small text-secondary">{% for n in data.notes %}<div>{{ n }}</div>{% endfor %}</div>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

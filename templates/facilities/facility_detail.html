@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}{{ facility.facility_code }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{% url 'facilities:list' %}">Facilities</a></li>
+    <li class="breadcrumb-item active" aria-current="page">{{ facility.facility_code }}</li>
+  </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">{{ facility.facility_code }} <span class="text-secondary fw-normal">· {{ facility.name }}</span></h1>
+    {% include "includes/facility_status_badge.html" %}
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'scheduling:facility_calendar' facility.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar-week"></i> Calendar</a>
+    {% if nav_can_view_analytics %}<a href="{% url 'analytics:dashboard' %}?facility={{ facility.pk }}&period=day" class="btn btn-outline-secondary btn-sm"><i class="bi bi-graph-up"></i> Utilization</a>{% endif %}
+    {% if facility.is_active %}<a href="{% url 'scheduling:reservation_create' %}?facility={{ facility.pk }}" class="btn btn-primary btn-sm"><i class="bi bi-calendar-plus"></i> Reserve</a>{% endif %}
+  {% if can_edit %}
+    <a href="{% url 'facilities:update' facility.pk %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-pencil"></i> Edit</a>
+    <a href="{% url 'facilities:maintenance_create' facility.pk %}" class="btn btn-outline-warning btn-sm"><i class="bi bi-tools"></i> Log maintenance</a>
+    <a href="{% url 'usage:qr_codes' %}?facility={{ facility.pk }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-qr-code"></i> QR code</a>
+    <form method="post" action="{% url 'facilities:toggle_active' facility.pk %}" class="m-0"
+          onsubmit="return confirm('{% if facility.is_active %}Deactivate{% else %}Reactivate{% endif %} {{ facility.facility_code }}?');">
+      {% csrf_token %}
+      <button class="btn btn-outline-{% if facility.is_active %}danger{% else %}success{% endif %} btn-sm" type="submit">
+        {% if facility.is_active %}<i class="bi bi-archive"></i> Deactivate{% else %}<i class="bi bi-arrow-counterclockwise"></i> Reactivate{% endif %}
+      </button>
+    </form>
+  {% endif %}
+  </div>
+</div>
+
+{% if over_capacity %}
+<div class="alert alert-warning">
+  <i class="bi bi-exclamation-triangle"></i>
+  <strong>Possible overcrowding:</strong>
+  {% for s in over_capacity %}{{ s.activity.code }} ({{ s.expected_attendees }} expected){% if not forloop.last %}, {% endif %}{% endfor %}
+  exceed{{ over_capacity|length|pluralize:"s," }} the capacity of {{ facility.capacity }}.
+</div>
+{% endif %}
+
+{% if open_risks %}
+<div class="card mb-3">
+  <div class="card-header fw-semibold d-flex justify-content-between">
+    <span>Open risks</span>
+    <a href="{% url 'risks:register' %}?facility={{ facility.pk }}" class="small fw-normal">View all</a>
+  </div>
+  <ul class="list-group list-group-flush">
+    {% for r in open_risks %}
+    <li class="list-group-item d-flex flex-wrap gap-2 align-items-center">
+      {% include "includes/priority_badge.html" with p=r.priority %}
+      <a href="{% url 'risks:detail' r.pk %}" class="fw-semibold text-decoration-none">{{ r.get_category_display }}</a>
+      <span class="small text-secondary text-truncate" style="max-width: 40rem;">{{ r.reason }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-12 col-lg-4">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Details</div>
+      <div class="card-body">
+        <dl class="row mb-0 small">
+          <dt class="col-5">Building</dt><dd class="col-7">{{ facility.building }}</dd>
+          <dt class="col-5">Floor</dt><dd class="col-7">{{ facility.floor }}</dd>
+          <dt class="col-5">Type</dt><dd class="col-7">{{ facility.facility_type }}</dd>
+          <dt class="col-5">Capacity</dt><dd class="col-7">{{ facility.capacity }} seats</dd>
+          <dt class="col-5">Owner</dt><dd class="col-7">{{ facility.owner_department|default:"—" }}</dd>
+          <dt class="col-5">Operating hours</dt><dd class="col-7">{{ facility.open_time|time:"H:i" }}–{{ facility.close_time|time:"H:i" }}</dd>
+          <dt class="col-5">Last updated</dt><dd class="col-7">{{ facility.updated_at|date:"Y-m-d H:i" }}</dd>
+          {% if facility.notes %}<dt class="col-5">Notes</dt><dd class="col-7">{{ facility.notes|linebreaksbr }}</dd>{% endif %}
+        </dl>
+        {% if can_edit %}
+        <hr>
+        <form method="post" action="{% url 'facilities:change_status' facility.pk %}" class="d-flex gap-2">
+          {% csrf_token %}
+          <label class="visually-hidden" for="{{ status_form.status.id_for_label }}">Status</label>
+          {{ status_form.status }}
+          <button type="submit" class="btn btn-sm btn-primary text-nowrap">Update status</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-8">
+    <div class="card h-100">
+      <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+        <span class="fw-semibold">Weekly schedule (current term)</span>
+        <span class="small text-secondary">
+          {{ scheduled_hours|floatformat:1 }} of {{ weekly_operating_hours|floatformat:0 }} operating hours scheduled
+          ({{ scheduled_load|floatformat:0 }}%)
+        </span>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+          <tbody>
+          {% for day in week %}
+            <tr>
+              <th class="ps-3 text-nowrap" style="width: 7rem;">{{ day.label }}</th>
+              <td>
+                {% for s in day.items %}
+                <span class="badge rounded-pill {% if s.expected_attendees > facility.capacity %}text-bg-danger{% else %}text-bg-primary{% endif %} me-1 mb-1"
+                      title="{{ s.activity.title }} · {{ s.expected_attendees }} expected">
+                  {{ s.start_time|time:"H:i" }}–{{ s.end_time|time:"H:i" }} {{ s.activity.code }}
+                </span>
+                {% empty %}<span class="text-secondary small">—</span>{% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Upcoming reservations</div>
+      <ul class="list-group list-group-flush">
+        {% for r in reservations %}
+        <li class="list-group-item small d-flex justify-content-between gap-2">
+          <span>{{ r.purpose }}<br><span class="text-secondary">{{ r.start_at|date:"M d, H:i" }}–{{ r.end_at|time:"H:i" }}{% if can_edit %} · {{ r.requested_by.get_full_name|default:r.requested_by.username }}{% endif %}</span></span>
+          <span class="badge {% if r.status == 'APPROVED' %}text-bg-success{% else %}text-bg-secondary{% endif %} align-self-start">{{ r.get_status_display }}</span>
+        </li>
+        {% empty %}
+        <li class="list-group-item small text-secondary">No upcoming reservations.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="card h-100">
+      <div class="card-header fw-semibold">Maintenance history</div>
+      <ul class="list-group list-group-flush">
+        {% for m in maintenance_records %}
+        <li class="list-group-item small d-flex justify-content-between gap-2">
+          <span>{{ m.reason }}<br><span class="text-secondary">{{ m.start_at|date:"M d, Y H:i" }} – {% if m.end_at %}{{ m.end_at|date:"M d, Y H:i" }}{% else %}open-ended{% endif %}</span></span>
+          <span class="badge {% if m.status == 'COMPLETED' %}text-bg-success{% elif m.status == 'ONGOING' %}text-bg-warning{% else %}text-bg-info{% endif %} align-self-start">{{ m.get_status_display }}</span>
+        </li>
+        {% empty %}
+        <li class="list-group-item small text-secondary">No maintenance records.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

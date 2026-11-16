@@ -1,0 +1,1 @@
+{% if r.status == "APPROVED" %}<span class="badge text-bg-success">Approved</span>{% elif r.status == "PENDING" %}<span class="badge text-bg-warning">Pending</span>{% elif r.status == "REJECTED" %}<span class="badge text-bg-danger">Rejected</span>{% else %}<span class="badge text-bg-secondary">{{ r.get_status_display }}</span>{% endif %}

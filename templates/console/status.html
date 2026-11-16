@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}System Status{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Administration</h1>
+{% include "console/_tabs.html" with tab="status" %}
+<div class="row g-3">
+  <div class="col-12 col-xl-7">
+    <div class="card mb-3">
+      <div class="card-header fw-semibold">Health checks</div>
+      <ul class="list-group list-group-flush">
+        {% for label, ok, detail in checks %}
+        <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+          <span>{% if ok %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-exclamation-triangle-fill" style="color: #c4592f;"></i>{% endif %} {{ label }}</span>
+          <span class="small {% if ok %}text-secondary{% else %}fw-semibold{% endif %} text-end">{% if not ok %}Attention: {% endif %}{{ detail }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header fw-semibold">Run jobs now</div>
+      <div class="card-body d-flex flex-wrap gap-2 align-items-center">
+        <form method="post" action="{% url 'analytics:recalculate' %}" class="m-0">
+          {% csrf_token %}
+          <input type="hidden" name="start" value="{% now 'Y-m-d' as today %}{{ today }}">
+          <input type="hidden" name="end" value="{{ today }}">
+          <button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-repeat"></i> Recalculate today's utilization</button>
+        </form>
+        <form method="post" action="{% url 'risks:run_detection' %}" class="m-0">
+          {% csrf_token %}<button type="submit" class="btn btn-outline-primary btn-sm"><i class="bi bi-radar"></i> Run risk detection</button>
+        </form>
+        <span class="small text-secondary">These normally run nightly. See the README for scheduling.</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-5">
+    <div class="card mb-3">
+      <div class="card-header fw-semibold">Data</div>
+      <ul class="list-group list-group-flush small">
+        {% for label, n in counts %}<li class="list-group-item d-flex justify-content-between"><span>{{ label }}</span><span style="font-variant-numeric: tabular-nums;">{{ n }}</span></li>{% endfor %}
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header fw-semibold">Configuration</div>
+      <ul class="list-group list-group-flush small">
+        {% for label, value in info %}<li class="list-group-item d-flex justify-content-between"><span>{{ label }}</span><span class="text-secondary">{{ value }}</span></li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Risk #{{ risk.pk }}{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{% url 'risks:register' %}">Risk register</a></li>
+    <li class="breadcrumb-item active" aria-current="page">#{{ risk.pk }}</li>
+  </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-1">{{ risk.get_category_display }} · <a href="{% url 'facilities:detail' risk.facility.pk %}" class="text-decoration-none">{{ risk.facility.facility_code }}</a></h1>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      {% include "includes/priority_badge.html" with p=risk.priority %}
+      <span class="badge text-bg-light border">{{ risk.get_status_display }}</span>
+      <span class="small text-secondary">{% if risk.auto_detected %}Detected automatically{% else %}Raised manually{% endif %} on {{ risk.detected_at|date:"M d, Y" }}{% if risk.last_detected_at %} · last confirmed {{ risk.last_detected_at|date:"M d, H:i" }}{% endif %}</span>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-12 col-lg-7">
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-4 mb-3">
+          <div><div class="small text-secondary">Likelihood</div><div class="fs-3 fw-semibold">{{ risk.likelihood }}<span class="fs-6 text-secondary">/5</span></div></div>
+          <div class="fs-3 text-secondary align-self-end">×</div>
+          <div><div class="small text-secondary">Impact</div><div class="fs-3 fw-semibold">{{ risk.impact }}<span class="fs-6 text-secondary">/5</span></div></div>
+          <div class="fs-3 text-secondary align-self-end">=</div>
+          <div><div class="small text-secondary">Score</div><div class="fs-3 fw-semibold">{{ risk.score }}<span class="fs-6 text-secondary">/25</span></div></div>
+        </div>
+        <h2 class="h6">Why this was flagged</h2>
+        <p class="mb-0">{{ risk.reason|linebreaksbr }}</p>
+      </div>
+    </div>
+
+    {% if evidence %}
+    <div class="card mb-3">
+      <div class="card-header fw-semibold">Evidence</div>
+      <div class="table-responsive">
+        <table class="table table-sm mb-0">
+          <tbody>{% for label, value in evidence %}<tr><th class="fw-normal text-secondary" style="width: 50%;">{{ label }}</th><td>{{ value }}</td></tr>{% endfor %}</tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card mb-3">
+      <div class="card-header fw-semibold">Mitigation actions</div>
+      <ul class="list-group list-group-flush">
+        {% for a in actions %}
+        <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div>
+            <div class="{% if a.status == 'DONE' %}text-decoration-line-through text-secondary{% endif %}">{{ a.action }}</div>
+            <div class="small text-secondary">
+              {% if a.assigned_to %}{{ a.assigned_to.get_full_name|default:a.assigned_to.username }}{% else %}Unassigned{% endif %}
+              {% if a.due_date %} · due {{ a.due_date|date:"M d, Y" }}{% endif %}
+              {% if a.is_overdue %} <span class="text-danger fw-semibold"><i class="bi bi-alarm"></i> Overdue</span>{% endif %}
+            </div>
+          </div>
+          {% if can_manage or a.assigned_to_id == request.user.pk %}
+          <form method="post" action="{% url 'risks:action_status' a.pk %}" class="d-flex gap-1">
+            {% csrf_token %}
+            {% for v, l in action_statuses %}
+            <button type="submit" name="status" value="{{ v }}" class="btn btn-sm {% if a.status == v %}btn-secondary{% else %}btn-outline-secondary{% endif %}" {% if a.status == v %}aria-pressed="true"{% endif %}>{{ l }}</button>
+            {% endfor %}
+          </form>
+          {% else %}<span class="badge text-bg-light border">{{ a.get_status_display }}</span>{% endif %}
+        </li>
+        {% empty %}
+        <li class="list-group-item small text-secondary">No mitigation actions yet.</li>
+        {% endfor %}
+      </ul>
+      {% if can_manage %}
+      <div class="card-body border-top">
+        <form method="post" action="{% url 'risks:add_action' risk.pk %}" class="row g-2 align-items-end">
+          {% csrf_token %}
+          <div class="col-12 col-md-6"><label class="form-label small mb-1" for="{{ action_form.action.id_for_label }}">New action</label>{{ action_form.action }}</div>
+          <div class="col-6 col-md-3"><label class="form-label small mb-1" for="{{ action_form.assigned_to.id_for_label }}">Assign to</label>{{ action_form.assigned_to }}</div>
+          <div class="col-6 col-md-3"><label class="form-label small mb-1" for="{{ action_form.due_date.id_for_label }}">Due</label>{{ action_form.due_date }}</div>
+          <div class="col-12"><button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Add action</button></div>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header fw-semibold">Ownership and status</div>
+      <div class="card-body">
+        <p class="mb-2 small">Owner: <strong>{% if risk.owner %}{{ risk.owner.get_full_name|default:risk.owner.username }}{% else %}Unassigned{% endif %}</strong></p>
+        {% if can_manage %}
+        <form method="post" action="{% url 'risks:update' risk.pk %}">
+          {% csrf_token %}
+          <div class="mb-2"><label class="form-label small mb-1" for="{{ update_form.status.id_for_label }}">Status</label>{{ update_form.status }}</div>
+          <div class="mb-2"><label class="form-label small mb-1" for="{{ update_form.owner.id_for_label }}">Owner</label>{{ update_form.owner }}</div>
+          <div class="mb-2">
+            <label class="form-label small mb-1" for="{{ update_form.note.id_for_label }}">Note</label>{{ update_form.note }}
+            <div class="form-text">{{ update_form.note.help_text }}</div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">Save</button>
+        </form>
+        {% if risk.auto_detected %}
+        <p class="small text-secondary mt-3 mb-0">
+          This risk is managed by the detection engine: its ratings refresh on every run and it closes automatically when the condition clears.
+          Choose <strong>Accepted</strong> to keep monitoring a known condition without action. It reopens if its priority rises.
+        </p>
+        {% endif %}
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header fw-semibold">History</div>
+      <ul class="list-group list-group-flush small">
+        {% for line in notes reversed %}<li class="list-group-item">{{ line }}</li>{% empty %}<li class="list-group-item text-secondary">No notes yet.</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+<p class="small text-secondary mt-3 mb-0"><i class="bi bi-info-circle"></i> Risk scores are decision-support indicators based on approved rules. They do not certify a facility as safe and do not replace inspections or decisions by qualified campus personnel.</p>
+{% endblock %}

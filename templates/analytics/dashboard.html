@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% block title %}Utilization{% endblock %}
+{% block extra_head %}
+<style>
+  .viz-root {
+    --surface-1: #fcfcfb;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #898781;
+    --grid: #e1e0d9;
+    --axis: #c3c2b7;
+    --series-1: #2a78d6;   /* actual utilization */
+    --series-2: #eb6834;   /* scheduled */
+  }
+  .viz-card { background: var(--surface-1); }
+  .chart-box { position: relative; height: 280px; }
+  .legend-swatch { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .rate-bar { height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; min-width: 80px; }
+  .rate-bar > span { display: block; height: 100%; background: var(--series-1); border-radius: 3px; }
+  .heat { border-collapse: separate; border-spacing: 2px; font-size: 0.75rem; }
+  .heat th { font-weight: 500; color: var(--text-muted); text-align: center; padding: 0 2px; }
+  .heat td { width: 2.2rem; height: 1.6rem; border-radius: 4px; background: #f0efec; }
+  .heat-scale span { display: inline-block; width: 22px; height: 10px; }
+  .heat-scale span:first-child { border-radius: 3px 0 0 3px; }
+  .heat-scale span:last-child { border-radius: 0 3px 3px 0; }
+  .num { font-variant-numeric: tabular-nums; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="viz-root">
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h1 class="h3 mb-0">Facility utilization</h1>
+    {% if definition %}
+    <div class="small text-secondary">
+      {{ definition.name }} v{{ definition.version }}: used hours ÷ available hours ({{ definition.operating_days_display }}{% if definition.exclude_maintenance %}, maintenance excluded{% endif %}{% if definition.count_reservations_as_use %}, reservations count as use{% endif %})
+    </div>
+    {% endif %}
+  </div>
+  <div class="d-flex flex-wrap gap-2 align-items-center">
+    {% if last_calculated %}
+    <span class="small {% if is_stale %}text-danger{% else %}text-secondary{% endif %}" title="Time of the last utilization calculation">
+      <i class="bi {% if is_stale %}bi-exclamation-triangle{% else %}bi-clock-history{% endif %}"></i>
+      Data as of {{ last_calculated|date:"M d, H:i" }}{% if is_stale %} (stale){% endif %}
+    </span>
+    {% endif %}
+    {% if can_admin and recalc_form %}
+    <form method="post" action="{% url 'analytics:recalculate' %}" class="m-0">
+      {% csrf_token %}
+      {{ recalc_form.start.as_hidden }}{{ recalc_form.end.as_hidden }}
+      <input type="hidden" name="next" value="{{ export_query }}">
+      <button type="submit" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-repeat"></i> Recalculate</button>
+    </form>
+    <a href="{% url 'analytics:definitions' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-sliders"></i> Definitions</a>
+    {% endif %}
+  </div>
+</div>
+
+<form method="get" class="card card-body mb-3 py-3" novalidate>
+  <div class="row g-2 align-items-end">
+    {% for field in form %}
+    <div class="col-6 col-md-3 col-xl">
+      <label class="form-label small mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% for e in field.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+    </div>
+    {% endfor %}
+    <div class="col-12 col-md-3 col-xl-auto d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Apply</button>
+      <a href="{% url 'analytics:dashboard' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+  </div>
+</form>
+
+{% if total %}
+{% if not has_data %}
+<div class="alert alert-info">No utilization data for this selection.{% if can_admin %} Use <strong>Recalculate</strong> to compute it.{% endif %}</div>
+{% else %}
+
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body">
+    <div class="text-secondary small">Utilization</div>
+    <div class="fs-2 fw-semibold">{{ total.rate|floatformat:1 }}%</div>
+    <div class="small text-secondary">{{ total.used|floatformat:0 }} of {{ total.available|floatformat:0 }} available hours used</div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body">
+    <div class="text-secondary small">Scheduled</div>
+    <div class="fs-2 fw-semibold">{{ total.scheduled_rate|floatformat:1 }}%</div>
+    <div class="small text-secondary">{{ total.gap|floatformat:1 }} pts booked but not used</div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body">
+    <div class="text-secondary small">Average seat occupancy</div>
+    <div class="fs-2 fw-semibold">{% if total.occupancy is not None %}{{ total.occupancy|floatformat:0 }}%{% else %}—{% endif %}</div>
+    <div class="small text-secondary">of capacity, when in use and counted</div>
+  </div></div></div>
+  <div class="col-6 col-lg-3"><div class="card stat-card h-100"><div class="card-body">
+    <div class="text-secondary small">Outside target range</div>
+    <div class="fs-2 fw-semibold">{{ low_count|add:high_count }}</div>
+    <div class="small">
+      <span class="text-secondary"><i class="bi bi-arrow-down-circle"></i> {{ low_count }} under {{ limits.low|floatformat:0 }}%</span> ·
+      <span class="text-secondary"><i class="bi bi-arrow-up-circle"></i> {{ high_count }} high demand</span>
+    </div>
+  </div></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-12 col-xl-7">
+    <div class="card viz-card h-100">
+      <div class="card-header bg-transparent d-flex flex-wrap justify-content-between gap-2">
+        <span class="fw-semibold">Utilization over time</span>
+        <span class="small text-secondary">
+          <span class="legend-swatch" style="background: var(--series-1)"></span>Actual
+          <span class="legend-swatch ms-3" style="background: var(--series-2)"></span>Scheduled
+        </span>
+      </div>
+      <div class="card-body"><div class="chart-box"><canvas id="trendChart" aria-label="Line chart of actual and scheduled utilization over time. Values are in the table below." role="img"></canvas></div></div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-5">
+    <div class="card viz-card h-100">
+      <div class="card-header bg-transparent fw-semibold">Utilization by {{ group_label|lower }}</div>
+      <div class="card-body"><div class="chart-box" id="rankedBox"><canvas id="rankedChart" aria-label="Bar chart of utilization by {{ group_label|lower }}. Values are in the table below." role="img"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="card viz-card mb-3">
+  <div class="card-header bg-transparent d-flex flex-wrap justify-content-between gap-2">
+    <span class="fw-semibold">Peak periods <span class="fw-normal small text-secondary">average rooms in use, by weekday and hour</span></span>
+    <span class="small text-secondary heat-scale d-flex align-items-center gap-1">
+      0 {% for c in heat.steps %}<span style="background: {{ c }}"></span>{% endfor %} {{ heat.peak }}
+    </span>
+  </div>
+  <div class="card-body table-responsive">
+    <table class="heat">
+      <thead><tr><th></th>{% for h in heat.hours %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for row in heat.rows %}
+        <tr>
+          <th scope="row" class="text-end pe-2">{{ row.day }}</th>
+          {% for c in row.cells %}
+          <td style="{% if c.color %}background: {{ c.color }};{% endif %}" title="{{ row.day }} {{ c.hour }}:00–{{ c.hour|add:1 }}:00 · {{ c.value }} rooms in use on average">
+            <span class="visually-hidden">{{ row.day }} {{ c.hour }}:00, {{ c.value }} rooms</span>
+          </td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header d-flex flex-wrap justify-content-between gap-2 align-items-center">
+    <span class="fw-semibold">By {{ group_label|lower }}</span>
+    <a href="?{{ export_query }}&export=csv" class="btn btn-outline-secondary btn-sm"><i class="bi bi-download"></i> Export CSV</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>{{ group_label }}</th><th style="min-width: 10rem;">Utilization</th><th class="text-end">Scheduled</th><th class="text-end">Gap</th>
+            <th class="text-end">Seat occupancy</th><th class="text-end">Used h</th><th class="text-end">Available h</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+      {% for item in rows %}{% with r=item.row %}
+        <tr>
+          <td>{% if group == "facility" %}<a href="{% url 'facilities:detail' r.key %}" class="text-decoration-none">{{ r.label }}</a>{% else %}{{ r.label }}{% endif %}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              <span class="num" style="width: 3.2rem;">{{ r.rate|floatformat:1 }}%</span>
+              <div class="rate-bar flex-grow-1"><span style="width: {{ r.rate|floatformat:0 }}%"></span></div>
+            </div>
+          </td>
+          <td class="text-end num">{{ r.scheduled_rate|floatformat:1 }}%</td>
+          <td class="text-end num">{{ r.gap|floatformat:1 }}</td>
+          <td class="text-end num">{% if r.occupancy is not None %}{{ r.occupancy|floatformat:0 }}%{% else %}—{% endif %}</td>
+          <td class="text-end num">{{ r.used|floatformat:1 }}</td>
+          <td class="text-end num">{{ r.available|floatformat:1 }}</td>
+          <td class="small text-nowrap">
+            {% if item.band == "low" %}<i class="bi bi-arrow-down-circle"></i> Underutilized
+            {% elif item.band == "high" %}<i class="bi bi-arrow-up-circle"></i> High demand
+            {% elif item.band == "ok" %}<i class="bi bi-check-circle"></i> In range
+            {% elif item.band == "unavailable" %}<i class="bi bi-tools"></i> {% if r.status == "MAINTENANCE" %}Under maintenance{% else %}Closed{% endif %}
+            {% else %}<span class="text-secondary">No available time</span>{% endif %}
+          </td>
+        </tr>
+      {% endwith %}{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer small text-secondary">
+    Target range {{ limits.low|floatformat:0 }}–{{ limits.high|floatformat:0 }}% (set in system settings). "High demand" means actual <em>or</em> scheduled utilization is above {{ limits.high|floatformat:0 }}%.
+    "Gap" is scheduled minus actual utilization in percentage points: time that was booked but not used (negative when walk-in use exceeds bookings).
+  </div>
+</div>
+{% endif %}
+{% endif %}
+</div>
+{{ chart_data|json_script:"chart-data" }}
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const el = document.getElementById("chart-data");
+  if (!el || !window.Chart) return;
+  const data = JSON.parse(el.textContent);
+  if (!data || !data.trend) return;
+  const css = getComputedStyle(document.querySelector(".viz-root"));
+  const v = (name) => css.getPropertyValue(name).trim();
+  const ink = { text: v("--text-secondary"), muted: v("--text-muted"), grid: v("--grid"), axis: v("--axis") };
+  Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+  Chart.defaults.color = ink.muted;
+  const pct = (x) => (x === null || x === undefined ? "—" : x.toFixed(1) + "%");
+  const tooltip = {
+    backgroundColor: "#ffffff", titleColor: "#0b0b0b", bodyColor: "#52514e", borderColor: "rgba(11,11,11,0.10)",
+    borderWidth: 1, padding: 10, boxPadding: 4, usePointStyle: true,
+    callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${pct(ctx.chart.options.indexAxis === "y" ? ctx.parsed.x : ctx.parsed.y)}` },
+  };
+  const yPct = { min: 0, max: 100, ticks: { callback: (t) => t + "%", stepSize: 25 }, grid: { color: ink.grid }, border: { color: ink.axis } };
+
+  // Reference line plugin: solid hairline at the target thresholds. Labels sit OUTSIDE the
+  // plot area (right margin for horizontal lines, below the plot for vertical ones) so they
+  // can never collide with data marks.
+  const thresholds = {
+    id: "thresholds",
+    beforeDatasetsDraw(chart, args, opts) {
+      const scale = chart.scales[opts.axis];
+      if (!scale) return;
+      const { ctx, chartArea } = chart;
+      ctx.save();
+      ctx.strokeStyle = ink.axis; ctx.fillStyle = ink.muted; ctx.lineWidth = 1;
+      ctx.font = '11px system-ui, -apple-system, "Segoe UI", sans-serif';
+      for (const [value, label] of opts.lines) {
+        const p = Math.round(scale.getPixelForValue(value)) + 0.5;
+        ctx.beginPath();
+        if (opts.axis === "y") {
+          ctx.moveTo(chartArea.left, p); ctx.lineTo(chartArea.right, p); ctx.stroke();
+          ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillText(label, chartArea.right + 6, p);
+        } else {
+          ctx.moveTo(p, chartArea.top); ctx.lineTo(p, chartArea.bottom); ctx.stroke();
+          ctx.textAlign = "center"; ctx.textBaseline = "top"; ctx.fillText(label, p, chartArea.bottom + 6);
+        }
+      }
+      ctx.restore();
+    },
+  };
+  const limitLines = [[data.limits.low, `${data.limits.low}%`], [data.limits.high, `${data.limits.high}%`]];
+
+  // 1. Trend: actual vs scheduled (same unit, one axis)
+  new Chart(document.getElementById("trendChart"), {
+    type: "line",
+    data: {
+      labels: data.trend.labels,
+      datasets: [
+        { label: "Actual", data: data.trend.actual, borderColor: v("--series-1"), backgroundColor: v("--series-1"),
+          borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: v("--surface-1"), pointBorderWidth: 2, tension: 0 },
+        { label: "Scheduled", data: data.trend.scheduled, borderColor: v("--series-2"), backgroundColor: v("--series-2"),
+          borderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointBorderColor: v("--surface-1"), pointBorderWidth: 2, tension: 0 },
+      ],
+    },
+    options: {
+      maintainAspectRatio: false,
+      layout: { padding: { right: 36 } },
+      interaction: { mode: "index", intersect: false },
+      plugins: { legend: { display: false }, tooltip, thresholds: { axis: "y", lines: limitLines } },
+      scales: { y: yPct, x: { grid: { display: false }, border: { color: ink.axis } } },
+    },
+    plugins: [thresholds],
+  });
+
+  // 2. Ranked bars: one series, one color
+  const n = data.ranked.labels.length;
+  document.getElementById("rankedBox").style.height = Math.max(200, n * 26 + 80) + "px";
+  new Chart(document.getElementById("rankedChart"), {
+    type: "bar",
+    data: {
+      labels: data.ranked.labels,
+      datasets: [{ label: "Utilization", data: data.ranked.values, backgroundColor: v("--series-1"),
+                   borderRadius: 4, borderSkipped: "start", barPercentage: 0.7, categoryPercentage: 0.9 }],
+    },
+    options: {
+      indexAxis: "y", maintainAspectRatio: false,
+      layout: { padding: { bottom: 20, right: 12 } },
+      interaction: { mode: "nearest", axis: "y", intersect: false },
+      plugins: { legend: { display: false }, tooltip, thresholds: { axis: "x", lines: limitLines } },
+      scales: { x: { ...yPct, position: "top" }, y: { grid: { display: false }, border: { color: ink.axis }, ticks: { color: ink.text } } },
+    },
+    plugins: [thresholds],
+  });
+})();
+</script>
+{% endblock %}

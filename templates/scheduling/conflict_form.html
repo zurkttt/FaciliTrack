@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9 col-xl-7">
+    <h1 class="h3 mb-3">{{ title }}</h1>
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger">
+            <div class="fw-semibold mb-1"><i class="bi bi-x-octagon"></i> Conflicts found. This cannot be saved:</div>
+            <ul class="mb-0 ps-3">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>
+          </div>
+          {% endif %}
+          <div class="row g-3">
+          {% for field in form %}
+            {% if field.name != "acknowledge_warnings" %}
+            <div class="{% if field.field.widget.attrs.rows %}col-12{% else %}col-12 col-md-6{% endif %}">
+              <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+              {{ field }}
+              {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+              {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            </div>
+            {% endif %}
+          {% endfor %}
+          </div>
+          {% if extra_link %}<p class="small mt-2 mb-0"><a href="{{ extra_link.url }}">{{ extra_link.text }}</a></p>{% endif %}
+
+          {% if form.warnings %}
+          <div class="alert alert-warning mt-4 mb-0">
+            <div class="fw-semibold mb-1"><i class="bi bi-exclamation-triangle"></i> Please review:</div>
+            <ul class="ps-3 mb-2">{% for w in form.warnings %}<li>{{ w.message }}</li>{% endfor %}</ul>
+            <div class="form-check">
+              {{ form.acknowledge_warnings }}
+              <label class="form-check-label" for="{{ form.acknowledge_warnings.id_for_label }}">{{ form.acknowledge_warnings.label }}</label>
+            </div>
+            {% for error in form.acknowledge_warnings.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+          </div>
+          {% endif %}
+
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a href="{{ cancel_url }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

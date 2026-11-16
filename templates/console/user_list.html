@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Administration</h1>
+{% include "console/_tabs.html" with tab="users" %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+  <form method="get" class="d-flex flex-wrap gap-2">
+    <label class="visually-hidden" for="q">Search</label>
+    <input type="search" id="q" name="q" value="{{ filters.q }}" class="form-control form-control-sm" style="width: 14rem;" placeholder="Name, username or email">
+    <label class="visually-hidden" for="role">Role</label>
+    <select id="role" name="role" class="form-select form-select-sm w-auto">
+      <option value="">All roles</option>
+      {% for v, l in roles %}<option value="{{ v }}" {% if filters.role == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+    </select>
+    <label class="visually-hidden" for="status">Status</label>
+    <select id="status" name="status" class="form-select form-select-sm w-auto">
+      <option value="">Active</option>
+      <option value="inactive" {% if filters.status == "inactive" %}selected{% endif %}>Deactivated</option>
+      <option value="all" {% if filters.status == "all" %}selected{% endif %}>All</option>
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+  </form>
+  <a href="{% url 'console:user_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-person-plus"></i> Add user</a>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light"><tr><th>User</th><th>Role</th><th>Department</th><th>Last login</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+      <tbody>
+      {% for u in users %}
+        <tr>
+          <td><div class="fw-semibold">{{ u.get_full_name|default:u.username }}</div><div class="small text-secondary">{{ u.username }}{% if u.email %} · {{ u.email }}{% endif %}</div></td>
+          <td class="small">{{ u.get_role_display }}{% if u.is_superuser %} <span class="badge text-bg-dark">Superuser</span>{% endif %}</td>
+          <td class="small">{{ u.department.code|default:"—" }}</td>
+          <td class="small text-secondary">{% if u.last_login %}{{ u.last_login|date:"M d, Y" }}{% else %}Never{% endif %}</td>
+          <td>
+            {% if not u.is_active %}<span class="badge text-bg-secondary">Deactivated</span>
+            {% elif u.must_change_password %}<span class="badge text-bg-warning">Temporary password</span>
+            {% else %}<span class="badge text-bg-success">Active</span>{% endif %}
+          </td>
+          <td class="text-end text-nowrap">
+            {% if not u.is_superuser or user.is_superuser %}
+            <a href="{% url 'console:user_edit' u.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+            <form method="post" action="{% url 'console:user_reset_password' u.pk %}" class="d-inline"
+                  onsubmit="return confirm('Issue a new temporary password for {{ u.username }}? Their current password will stop working.');">
+              {% csrf_token %}<button type="submit" class="btn btn-sm btn-outline-secondary" title="Reset password"><i class="bi bi-key"></i><span class="visually-hidden">Reset password</span></button>
+            </form>
+            {% if u != user %}
+            <form method="post" action="{% url 'console:user_toggle_active' u.pk %}" class="d-inline"
+                  onsubmit="return confirm('{% if u.is_active %}Deactivate{% else %}Reactivate{% endif %} {{ u.username }}?');">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}">{% if u.is_active %}Deactivate{% else %}Reactivate{% endif %}</button>
+            </form>
+            {% endif %}
+            {% else %}<span class="small text-secondary">Superuser</span>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="text-center text-secondary py-4">No users match.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if page_obj.has_other_pages %}
+<ul class="pagination pagination-sm mt-3">
+  {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.previous_page_number }}">Previous</a></li>{% endif %}
+  <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+  {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.next_page_number }}">Next</a></li>{% endif %}
+</ul>
+{% endif %}
+<p class="small text-secondary mt-3 mb-0">Users are deactivated rather than deleted, so their audit history and records stay intact.</p>
+{% endblock %}

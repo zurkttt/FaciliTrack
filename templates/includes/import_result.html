@@ -1,0 +1,35 @@
+<div class="card mt-3">
+  <div class="card-body">
+    {% if result.file_error %}
+      <div class="alert alert-danger mb-0"><i class="bi bi-x-octagon"></i> {{ result.file_error }}</div>
+    {% elif result.errors %}
+      <div class="alert alert-danger">
+        <i class="bi bi-x-octagon"></i> <strong>Nothing was imported.</strong>
+        {{ result.errors|length }} of {{ result.rows }} row{{ result.rows|pluralize }} ha{{ result.errors|length|pluralize:"s,ve" }} errors.
+      </div>
+    {% elif result.committed %}
+      <div class="alert alert-success"><i class="bi bi-check-circle"></i> Imported {{ result.created }} {{ item_label|default:"record" }}{{ result.created|pluralize }}.</div>
+    {% else %}
+      <div class="alert alert-info mb-0">The file contained no data rows.</div>
+    {% endif %}
+
+    {% if result.errors %}
+    <h2 class="h6">Errors</h2>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead class="table-light"><tr><th style="width: 5rem;">Row</th><th>Problem</th></tr></thead>
+        <tbody>{% for row, msgs in result.errors %}<tr><td>{{ row }}</td><td>{% for m in msgs %}<div>{{ m }}</div>{% endfor %}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    {% endif %}
+    {% if result.warnings %}
+    <h2 class="h6">Warnings</h2>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th style="width: 5rem;">Row</th><th>Warning</th></tr></thead>
+        <tbody>{% for row, msgs in result.warnings %}<tr><td>{{ row }}</td><td>{% for m in msgs %}<div>{{ m }}</div>{% endfor %}</td></tr>{% endfor %}</tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>

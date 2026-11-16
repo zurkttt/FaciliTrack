@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Reservation{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{% url 'scheduling:reservation_list' %}">Reservations</a></li>
+    <li class="breadcrumb-item active" aria-current="page">#{{ reservation.pk }}</li>
+  </ol>
+</nav>
+
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9 col-xl-7">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+      <h1 class="h3 mb-0">{{ reservation.purpose }}</h1>
+      {% with r=reservation %}{% include "includes/reservation_status_badge.html" %}{% endwith %}
+    </div>
+
+    {% if conflicts %}
+    <div class="alert {% if blocking %}alert-danger{% else %}alert-warning{% endif %}">
+      <div class="fw-semibold mb-1">
+        {% if blocking %}<i class="bi bi-x-octagon"></i> This request now has conflicts and cannot be approved:{% else %}<i class="bi bi-exclamation-triangle"></i> Warnings:{% endif %}
+      </div>
+      <ul class="mb-0 ps-3">{% for c in conflicts %}<li>{{ c.message }}</li>{% endfor %}</ul>
+    </div>
+    {% elif reservation.status == "PENDING" %}
+    <div class="alert alert-success"><i class="bi bi-check-circle"></i> No conflicts found.</div>
+    {% endif %}
+
+    <div class="card mb-3">
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">Facility</dt>
+          <dd class="col-sm-8"><a href="{% url 'facilities:detail' reservation.facility.pk %}">{{ reservation.facility }}</a> <span class="text-secondary small">(capacity {{ reservation.facility.capacity }})</span></dd>
+          <dt class="col-sm-4">Date and time</dt>
+          <dd class="col-sm-8">{{ reservation.start_at|date:"l, F d, Y" }}, {{ reservation.start_at|time:"H:i" }}–{{ reservation.end_at|time:"H:i" }}</dd>
+          <dt class="col-sm-4">Expected attendees</dt>
+          <dd class="col-sm-8">{{ reservation.expected_attendees }}</dd>
+          <dt class="col-sm-4">Requested by</dt>
+          <dd class="col-sm-8">{{ reservation.requested_by.get_full_name|default:reservation.requested_by.username }} <span class="text-secondary small">on {{ reservation.created_at|date:"M d, Y H:i" }}</span></dd>
+          {% if reservation.reviewed_by %}
+          <dt class="col-sm-4">Reviewed by</dt>
+          <dd class="col-sm-8">{{ reservation.reviewed_by.get_full_name|default:reservation.reviewed_by.username }} <span class="text-secondary small">on {{ reservation.reviewed_at|date:"M d, Y H:i" }}</span></dd>
+          {% endif %}
+          {% if reservation.remarks %}
+          <dt class="col-sm-4">Remarks</dt>
+          <dd class="col-sm-8">{{ reservation.remarks|linebreaksbr }}</dd>
+          {% endif %}
+        </dl>
+      </div>
+    </div>
+
+    {% if can_review %}
+    <div class="card mb-3">
+      <div class="card-header fw-semibold">Review</div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <label class="form-label" for="{{ review_form.remarks.id_for_label }}">Remarks (optional)</label>
+          {{ review_form.remarks }}
+          <div class="d-flex gap-2 mt-3">
+            <button type="submit" formaction="{% url 'scheduling:reservation_approve' reservation.pk %}" class="btn btn-success" {% if blocking %}disabled{% endif %}>
+              <i class="bi bi-check-lg"></i> Approve
+            </button>
+            <button type="submit" formaction="{% url 'scheduling:reservation_reject' reservation.pk %}" class="btn btn-outline-danger">
+              <i class="bi bi-x-lg"></i> Reject
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="d-flex flex-wrap gap-2">
+      <a href="{% url 'scheduling:facility_calendar' reservation.facility.pk %}?week={{ reservation.start_at|date:'Y-m-d' }}" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-calendar-week"></i> View facility calendar
+      </a>
+      {% if can_cancel %}
+      <form method="post" action="{% url 'scheduling:reservation_cancel' reservation.pk %}" onsubmit="return confirm('Cancel this reservation?');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-danger btn-sm"><i class="bi bi-calendar-x"></i> Cancel reservation</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

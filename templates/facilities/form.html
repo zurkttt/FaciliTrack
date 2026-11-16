@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-lg-9 col-xl-7">
+    <h1 class="h3 mb-3">{{ title }}</h1>
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% include "includes/form_fields.html" %}
+          <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a href="{% if cancel_url %}{{ cancel_url }}{% else %}{% url 'facilities:list' %}{% endif %}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

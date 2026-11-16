@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Facility Types{% endblock %}
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb small">
+    <li class="breadcrumb-item"><a href="{% url 'facilities:list' %}">Facilities</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Facility types</li>
+  </ol>
+</nav>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Facility types</h1>
+  <a href="{% url 'facilities:type_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add type</a>
+</div>
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light"><tr><th>Name</th><th>Description</th><th class="text-end">Active facilities</th><th></th></tr></thead>
+      <tbody>
+      {% for t in types %}
+        <tr>
+          <td class="fw-semibold">{{ t.name }}</td>
+          <td class="small text-secondary">{{ t.description|default:"—" }}</td>
+          <td class="text-end"><a href="{% url 'facilities:list' %}?type={{ t.pk }}">{{ t.facility_count }}</a></td>
+          <td class="text-end"><a href="{% url 'facilities:type_update' t.pk %}" class="btn btn-sm btn-outline-primary">Edit</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4" class="text-center text-secondary py-4">No facility types yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

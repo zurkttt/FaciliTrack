@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Usage Records{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Usage records</h1>
+  {% if can_edit %}
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'usage:import' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-upload"></i> Import CSV</a>
+    <a href="{% url 'usage:record_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Record use</a>
+  </div>
+  {% endif %}
+</div>
+
+<form method="get" class="card card-body mb-3 py-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-6 col-md-2"><label class="form-label small mb-1" for="start">From</label><input type="date" id="start" name="start" value="{{ start|date:'Y-m-d' }}" class="form-control form-control-sm"></div>
+    <div class="col-6 col-md-2"><label class="form-label small mb-1" for="end">To</label><input type="date" id="end" name="end" value="{{ end|date:'Y-m-d' }}" class="form-control form-control-sm"></div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1" for="facility">Facility</label>
+      <select id="facility" name="facility" class="form-select form-select-sm"><option value="">All</option>
+        {% for f in facilities %}<option value="{{ f.pk }}" {% if filters.facility == f.pk|stringformat:"s" %}selected{% endif %}>{{ f.facility_code }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1" for="source">Source</label>
+      <select id="source" name="source" class="form-select form-select-sm"><option value="">All</option>
+        {% for v, l in sources %}<option value="{{ v }}" {% if filters.source == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1" for="status">Status</label>
+      <select id="status" name="status" class="form-select form-select-sm"><option value="">All</option>
+        {% for v, l in statuses %}<option value="{{ v }}" {% if filters.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+      <a href="{% url 'usage:record_list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light"><tr><th>When</th><th>Facility</th><th>Linked to</th><th>Status</th><th class="text-end">Headcount</th><th>Source</th><th>Recorded by</th>{% if can_edit %}<th></th>{% endif %}</tr></thead>
+      <tbody>
+      {% for r in records %}
+        <tr>
+          <td class="text-nowrap">{{ r.start_at|date:"M d" }} <span class="small text-secondary">{{ r.start_at|time:"H:i" }}–{{ r.end_at|time:"H:i" }}</span></td>
+          <td>{{ r.facility.facility_code }}</td>
+          <td class="small">{% if r.schedule %}{{ r.schedule.activity }}{% elif r.reservation %}{{ r.reservation.purpose }}{% else %}<span class="text-secondary">Unscheduled</span>{% endif %}</td>
+          <td>{% if r.status == "USED" %}<span class="badge text-bg-success">Used</span>{% else %}<span class="badge text-bg-danger">No-show</span>{% endif %}</td>
+          <td class="text-end {% if r.over_capacity %}text-danger fw-semibold{% endif %}">{{ r.headcount|default_if_none:"—" }}{% if r.over_capacity %} <i class="bi bi-exclamation-triangle" title="Over capacity"></i>{% endif %}</td>
+          <td><span class="badge text-bg-light border">{{ r.get_source_display }}</span></td>
+          <td class="small">{{ r.recorded_by.username|default:"—" }}</td>
+          {% if can_edit %}
+          <td class="text-end">
+            <form method="post" action="{% url 'usage:record_delete' r.pk %}" onsubmit="return confirm('Delete this usage record?');">
+              {% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Delete"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="text-center text-secondary py-4">No usage records in this period.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
+  <span class="small text-secondary">{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}</span>
+  {% if page_obj.has_other_pages %}
+  <ul class="pagination pagination-sm mb-0">
+    {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.previous_page_number }}">Previous</a></li>{% endif %}
+    <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+    {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.next_page_number }}">Next</a></li>{% endif %}
+  </ul>
+  {% endif %}
+</div>
+{% endblock %}

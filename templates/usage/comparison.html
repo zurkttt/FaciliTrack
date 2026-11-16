@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Scheduled vs Actual{% endblock %}
+{% block content %}
+<h1 class="h3 mb-3">Scheduled vs actual use</h1>
+
+<form method="get" class="card card-body mb-3 py-3" novalidate>
+  <div class="row g-2 align-items-end">
+    {% for field in form %}
+    <div class="col-6 col-md-3 col-xl-2">
+      <label class="form-label small mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% for e in field.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}
+    </div>
+    {% endfor %}
+    <div class="col-12 col-md-3 col-xl-2"><button type="submit" class="btn btn-primary btn-sm w-100">Compare</button></div>
+  </div>
+</form>
+
+{% if report %}
+{% with t=report.totals %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-lg"><div class="card stat-card h-100"><div class="card-body">
+    <div class="text-secondary small">Finished sessions</div><div class="fs-3 fw-semibold">{{ t.sessions }}</div>
+    <div class="small text-secondary">{{ t.scheduled_hours|floatformat:1 }} scheduled hours</div>
+  </div></div></div>
+  <div class="col-6 col-lg"><div class="card stat-card h-100"><div class="card-body">
+    <div class="text-secondary small">Confirmed used</div><div class="fs-3 fw-semibold text-success">{{ t.used }}</div>
+    <div class="small text-secondary">{{ t.used_hours|floatformat:1 }} hours of actual use</div>
+  </div></div></div>
+  <div class="col-6 col-lg"><div class="card stat-card h-100"><div class="card-body">
+    <div class="text-secondary small">No-shows</div><div class="fs-3 fw-semibold text-danger">{{ t.no_show }}</div>
+    <div class="small text-secondary">{% if t.no_show_rate is not None %}{{ t.no_show_rate|floatformat:0 }}% of recorded sessions{% else %}—{% endif %}</div>
+  </div></div></div>
+  <div class="col-6 col-lg"><div class="card stat-card h-100"><div class="card-body">
+    <div class="text-secondary small">Not recorded</div><div class="fs-3 fw-semibold text-secondary">{{ t.no_data }}</div>
+    <div class="small text-secondary">{% if t.coverage_rate is not None %}{{ t.coverage_rate|floatformat:0 }}% data coverage{% else %}—{% endif %}</div>
+  </div></div></div>
+  <div class="col-6 col-lg"><div class="card stat-card h-100"><div class="card-body">
+    <div class="text-secondary small">Unscheduled use</div><div class="fs-3 fw-semibold">{{ t.unscheduled }}</div>
+    <div class="small text-danger">{{ t.over_capacity }} over-capacity observation{{ t.over_capacity|pluralize }}</div>
+  </div></div></div>
+</div>
+{% endwith %}
+
+<div class="card mb-3">
+  <div class="card-header fw-semibold">By facility</div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Facility</th><th class="text-end">Sessions</th><th class="text-end">Used</th><th class="text-end">No-show</th><th class="text-end">Not recorded</th>
+            <th class="text-end">Data coverage</th><th class="text-end">Unscheduled</th><th class="text-end">Over capacity</th><th class="text-end">Scheduled h</th><th class="text-end">Actual h</th></tr>
+      </thead>
+      <tbody>
+      {% for s in report.summaries %}
+        <tr>
+          <td><a href="{% url 'facilities:detail' s.facility.pk %}" class="text-decoration-none">{{ s.facility.facility_code }}</a></td>
+          <td class="text-end">{{ s.sessions }}</td>
+          <td class="text-end text-success">{{ s.used }}</td>
+          <td class="text-end text-danger">{{ s.no_show }}</td>
+          <td class="text-end text-secondary">{{ s.no_data }}</td>
+          <td class="text-end {% if s.coverage_rate is not None and s.coverage_rate < 50 %}text-danger{% endif %}">{% if s.coverage_rate is not None %}{{ s.coverage_rate|floatformat:0 }}%{% else %}—{% endif %}</td>
+          <td class="text-end">{{ s.unscheduled }}</td>
+          <td class="text-end {% if s.over_capacity %}text-danger fw-semibold{% endif %}">{{ s.over_capacity }}</td>
+          <td class="text-end">{{ s.scheduled_hours|floatformat:1 }}</td>
+          <td class="text-end">{{ s.used_hours|floatformat:1 }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="10" class="text-center text-secondary py-4">No scheduled sessions or usage in this period.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if report.detail_rows %}
+<div class="card mb-3">
+  <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+    <span class="fw-semibold">{% if report.detail_exceptions_only %}Sessions needing attention{% else %}Session detail{% endif %}</span>
+    <span class="small text-secondary">
+      {% if report.detail_total > limit %}Showing {{ limit }} of {{ report.detail_total }}. {% endif %}
+      {% if report.detail_exceptions_only %}No-shows, missing records and over-capacity sessions. Choose one facility to see every session.{% endif %}
+    </span>
+  </div>
+  <div class="table-responsive" style="max-height: 28rem;">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light sticky-top"><tr><th>When</th><th>Facility</th><th>Session</th><th class="text-end">Expected</th><th class="text-end">Actual</th><th>Result</th></tr></thead>
+      <tbody>
+      {% for row in report.detail_rows %}
+        <tr>
+          <td class="text-nowrap small">{{ row.session.start_at|date:"D M d" }} {{ row.session.start_at|time:"H:i" }}–{{ row.session.end_at|time:"H:i" }}</td>
+          <td>{{ row.session.facility.facility_code }}</td>
+          <td class="small">{{ row.session.label }}</td>
+          <td class="text-end">{{ row.session.expected }}</td>
+          <td class="text-end {% if row.over_capacity %}text-danger fw-semibold{% endif %}">{{ row.headcount|default_if_none:"—" }}</td>
+          <td>{% if row.status == "used" %}<span class="badge text-bg-success">Used</span>{% elif row.status == "no_show" %}<span class="badge text-bg-danger">No-show</span>{% else %}<span class="badge text-bg-secondary">Not recorded</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if report.unscheduled %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between"><span class="fw-semibold">Unscheduled use</span>{% if report.unscheduled_total > limit %}<span class="small text-secondary">Showing {{ limit }} of {{ report.unscheduled_total }}</span>{% endif %}</div>
+  <div class="table-responsive">
+    <table class="table table-sm align-middle mb-0">
+      <thead class="table-light"><tr><th>When</th><th>Facility</th><th class="text-end">Headcount</th><th>Source</th></tr></thead>
+      <tbody>
+      {% for r in report.unscheduled %}
+        <tr>
+          <td class="small">{{ r.start_at|date:"D M d" }} {{ r.start_at|time:"H:i" }}–{{ r.end_at|time:"H:i" }}</td>
+          <td>{{ r.facility.facility_code }}</td>
+          <td class="text-end {% if r.over_capacity %}text-danger fw-semibold{% endif %}">{{ r.headcount|default_if_none:"—" }}</td>
+          <td><span class="badge text-bg-light border">{{ r.get_source_display }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+<p class="small text-secondary mt-3">Only sessions that have already ended are counted. "Data coverage" is the share of sessions with any usage evidence (used or no-show). Low coverage means the numbers are less reliable.</p>
+{% endif %}
+{% endblock %}

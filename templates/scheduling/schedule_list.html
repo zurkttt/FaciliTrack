@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Class Schedules{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h3 mb-0">Class schedules</h1>
+  {% if can_edit %}
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'scheduling:schedule_import' %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-upload"></i> Import CSV</a>
+    <a href="{% url 'scheduling:schedule_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Add schedule</a>
+  </div>
+  {% endif %}
+</div>
+
+<form method="get" class="card card-body mb-3 py-3">
+  <div class="row g-2 align-items-end">
+    <div class="col-12 col-md-3">
+      <label class="form-label small mb-1" for="q">Course / activity</label>
+      <input type="search" id="q" name="q" value="{{ filters.q }}" class="form-control form-control-sm" placeholder="Code or title">
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1" for="building">Building</label>
+      <select id="building" name="building" class="form-select form-select-sm">
+        <option value="">All</option>
+        {% for b in buildings %}<option value="{{ b.pk }}" {% if filters.building == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.code }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1" for="facility">Facility</label>
+      <select id="facility" name="facility" class="form-select form-select-sm">
+        <option value="">All</option>
+        {% for f in facilities %}<option value="{{ f.pk }}" {% if filters.facility == f.pk|stringformat:"s" %}selected{% endif %}>{{ f.facility_code }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-2">
+      <label class="form-label small mb-1" for="day">Day</label>
+      <select id="day" name="day" class="form-select form-select-sm">
+        <option value="">All</option>
+        {% for value, label in days %}<option value="{{ value }}" {% if filters.day == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-6 col-md-1">
+      <label class="form-label small mb-1" for="term">Term</label>
+      <select id="term" name="term" class="form-select form-select-sm">
+        <option value="">Current</option>
+        <option value="all" {% if filters.term == "all" %}selected{% endif %}>All</option>
+      </select>
+    </div>
+    <div class="col-12 col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary btn-sm flex-grow-1">Filter</button>
+      <a href="{% url 'scheduling:schedule_list' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Day</th><th>Time</th><th>Course / activity</th><th>Facility</th><th class="text-end">Expected</th><th>Term</th><th>Source</th>{% if can_edit %}<th></th>{% endif %}</tr>
+      </thead>
+      <tbody>
+      {% for s in schedules %}
+        <tr>
+          <td>{{ s.get_day_of_week_display }}</td>
+          <td class="text-nowrap">{{ s.start_time|time:"H:i" }}–{{ s.end_time|time:"H:i" }}</td>
+          <td><span class="fw-semibold">{{ s.activity.code }}</span> <span class="text-secondary small">{{ s.activity.title }}</span></td>
+          <td><a href="{% url 'facilities:detail' s.facility.pk %}" class="text-decoration-none">{{ s.facility.facility_code }}</a></td>
+          <td class="text-end {% if s.expected_attendees > s.facility.capacity %}text-danger fw-semibold{% endif %}"
+              {% if s.expected_attendees > s.facility.capacity %}title="Exceeds capacity of {{ s.facility.capacity }}"{% endif %}>
+            {{ s.expected_attendees }}{% if s.expected_attendees > s.facility.capacity %} <i class="bi bi-exclamation-triangle"></i>{% endif %}
+          </td>
+          <td class="small text-nowrap">{{ s.term_start|date:"M d" }} – {{ s.term_end|date:"M d, Y" }}</td>
+          <td><span class="badge text-bg-light border">{{ s.get_source_display }}</span></td>
+          {% if can_edit %}
+          <td class="text-end text-nowrap">
+            <a href="{% url 'scheduling:schedule_update' s.pk %}" class="btn btn-sm btn-outline-primary">Edit</a>
+            <form method="post" action="{% url 'scheduling:schedule_delete' s.pk %}" class="d-inline" onsubmit="return confirm('Delete this schedule?');">
+              {% csrf_token %}<button class="btn btn-sm btn-outline-danger" type="submit" aria-label="Delete"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="8" class="text-center text-secondary py-4">No schedules match these filters.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mt-3 gap-2">
+  <span class="small text-secondary">{{ page_obj.paginator.count }} schedule{{ page_obj.paginator.count|pluralize }}</span>
+  {% if is_paginated %}
+  <ul class="pagination pagination-sm mb-0">
+    {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.previous_page_number }}">Previous</a></li>{% endif %}
+    <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+    {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?{{ querystring }}&page={{ page_obj.next_page_number }}">Next</a></li>{% endif %}
+  </ul>
+  {% endif %}
+</div>
+{% endblock %}

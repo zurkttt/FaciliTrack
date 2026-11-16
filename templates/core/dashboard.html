@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-end mb-3 gap-2">
+  <div>
+    <h1 class="h3 mb-0">Good {% now "A" as ampm %}{% if ampm == "AM" %}morning{% else %}afternoon{% endif %}, {{ user.first_name|default:user.username }}</h1>
+    <p class="text-secondary mb-0 small">{% now "l, F j, Y" %} · {{ user.get_role_display }}</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{% url 'scheduling:availability' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-search"></i> Find a room</a>
+    <a href="{% url 'scheduling:reservation_create' %}" class="btn btn-primary btn-sm"><i class="bi bi-calendar-plus"></i> Request a room</a>
+  </div>
+</div>
+
+{% if can_see_analytics or can_see_risks %}
+<div class="row g-3 mb-3">
+  {% if kpi %}
+  <div class="col-6 col-lg-3"><a href="{% url 'analytics:dashboard' %}" class="card stat-card h-100 text-decoration-none text-body"><div class="card-body">
+    <div class="text-secondary small">Utilization, last {{ kpi_days }} days</div>
+    <div class="fs-2 fw-semibold">{{ kpi.rate|floatformat:1 }}%</div>
+    <div class="small text-secondary">{{ kpi.scheduled_rate|floatformat:1 }}% scheduled</div>
+  </div></a></div>
+  <div class="col-6 col-lg-3"><a href="{% url 'analytics:dashboard' %}" class="card stat-card h-100 text-decoration-none text-body"><div class="card-body">
+    <div class="text-secondary small">Average seat occupancy</div>
+    <div class="fs-2 fw-semibold">{% if kpi.occupancy is not None %}{{ kpi.occupancy|floatformat:0 }}%{% else %}—{% endif %}</div>
+    <div class="small text-secondary">of capacity when in use</div>
+  </div></a></div>
+  {% endif %}
+  {% if can_see_risks %}
+  <div class="col-6 col-lg-3"><a href="{% url 'risks:register' %}?priority=HIGH" class="card stat-card h-100 text-decoration-none text-body"><div class="card-body">
+    <div class="text-secondary small">High-priority risks</div>
+    <div class="fs-2 fw-semibold {% if high_risks %}text-danger{% endif %}">{{ high_risks }}</div>
+    <div class="small text-secondary">{{ open_risks }} active in total</div>
+  </div></a></div>
+  {% endif %}
+  {% if is_approver %}
+  <div class="col-6 col-lg-3"><a href="{% url 'scheduling:reservation_list' %}" class="card stat-card h-100 text-decoration-none text-body"><div class="card-body">
+    <div class="text-secondary small">Requests awaiting approval</div>
+    <div class="fs-2 fw-semibold">{{ pending_count }}</div>
+    <div class="small text-secondary">upcoming</div>
+  </div></a></div>
+  {% elif is_usage_staff %}
+  <div class="col-6 col-lg-3"><a href="{% url 'usage:attendance' %}" class="card stat-card h-100 text-decoration-none text-body"><div class="card-body">
+    <div class="text-secondary small">Today's sessions to confirm</div>
+    <div class="fs-2 fw-semibold">{{ unconfirmed_today }}</div>
+    <div class="small text-secondary">of {{ sessions_today }} started so far</div>
+  </div></a></div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-12 col-xl-7 d-flex flex-column gap-3">
+    {% if can_see_risks %}
+    <div class="card">
+      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">Top risks</span><a href="{% url 'risks:register' %}" class="small">Risk register</a></div>
+      <ul class="list-group list-group-flush">
+        {% for r in top_risks %}
+        <li class="list-group-item">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            {% include "includes/priority_badge.html" with p=r.priority %}
+            <a href="{% url 'risks:detail' r.pk %}" class="fw-semibold text-decoration-none">{{ r.get_category_display }} · {{ r.facility.facility_code }}</a>
+            <span class="small text-secondary ms-auto">{% if r.owner %}{{ r.owner.get_full_name|default:r.owner.username }}{% else %}Unassigned{% endif %}</span>
+          </div>
+          <div class="small text-secondary text-truncate">{{ r.reason }}</div>
+        </li>
+        {% empty %}
+        <li class="list-group-item small text-secondary">No active risks.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if is_approver %}
+    <div class="card">
+      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">Awaiting your approval</span><a href="{% url 'scheduling:reservation_list' %}" class="small">All requests</a></div>
+      <ul class="list-group list-group-flush">
+        {% for r in pending %}
+        <li class="list-group-item d-flex flex-wrap justify-content-between gap-2">
+          <span><a href="{% url 'scheduling:reservation_detail' r.pk %}" class="text-decoration-none fw-semibold">{{ r.facility.facility_code }}</a> · {{ r.purpose }}
+            <span class="d-block small text-secondary">{{ r.start_at|date:"D, M d" }} {{ r.start_at|time:"H:i" }}–{{ r.end_at|time:"H:i" }} · {{ r.requested_by.get_full_name|default:r.requested_by.username }}</span></span>
+          <span class="small text-secondary">{{ r.expected_attendees }} people</span>
+        </li>
+        {% empty %}
+        <li class="list-group-item small text-secondary">No pending requests.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">My upcoming reservations</span><a href="{% url 'scheduling:reservation_list' %}?scope=mine" class="small">All mine</a></div>
+      <ul class="list-group list-group-flush">
+        {% for r in my_reservations %}
+        <li class="list-group-item d-flex justify-content-between gap-2">
+          <span><a href="{% url 'scheduling:reservation_detail' r.pk %}" class="text-decoration-none fw-semibold">{{ r.facility.facility_code }}</a> · {{ r.purpose }}
+            <span class="d-block small text-secondary">{{ r.start_at|date:"D, M d" }} {{ r.start_at|time:"H:i" }}–{{ r.end_at|time:"H:i" }}</span></span>
+          {% include "includes/reservation_status_badge.html" %}
+        </li>
+        {% empty %}
+        <li class="list-group-item small text-secondary">No upcoming reservations. <a href="{% url 'scheduling:availability' %}">Find a room</a>.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5 d-flex flex-column gap-3">
+    {% if my_actions or my_risk_count %}
+    <div class="card">
+      <div class="card-header d-flex justify-content-between"><span class="fw-semibold">My actions</span>{% if my_risk_count %}<a href="{% url 'risks:register' %}?mine=1" class="small">{{ my_risk_count }} risk{{ my_risk_count|pluralize }} I own</a>{% endif %}</div>
+      <ul class="list-group list-group-flush">
+        {% for a in my_actions %}
+        <li class="list-group-item">
+          <a href="{% url 'risks:detail' a.risk_id %}" class="text-decoration-none">{{ a.action }}</a>
+          <div class="small text-secondary">{{ a.risk.facility.facility_code }} · {% if a.due_date %}due {{ a.due_date|date:"M d" }}{% else %}no due date{% endif %}
+            {% if a.is_overdue %}<span class="text-danger fw-semibold"><i class="bi bi-alarm"></i> Overdue</span>{% endif %}</div>
+        </li>
+        {% empty %}
+        <li class="list-group-item small text-secondary">No open actions assigned to you.</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if is_usage_staff and unavailable %}
+    <div class="card">
+      <div class="card-header fw-semibold">Rooms not available</div>
+      <ul class="list-group list-group-flush">
+        {% for f in unavailable %}
+        <li class="list-group-item d-flex justify-content-between">
+          <a href="{% url 'facilities:detail' f.pk %}" class="text-decoration-none">{{ f.facility_code }} · {{ f.name }}</a>
+          <span class="small"><i class="bi bi-tools"></i> {{ f.get_status_display }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if freshness %}
+    <div class="card">
+      <div class="card-header fw-semibold">Data freshness</div>
+      <ul class="list-group list-group-flush small">
+        {% for item in freshness %}
+        <li class="list-group-item d-flex justify-content-between gap-2">
+          <span>{{ item.label }}</span>
+          <span class="{% if item.stale %}text-danger{% else %}text-secondary{% endif %} text-nowrap">
+            {% if item.stale %}<i class="bi bi-exclamation-triangle"></i>{% else %}<i class="bi bi-check-circle"></i>{% endif %}
+            {% if item.at %}{{ item.at|timesince }} ago{% else %}never{% endif %}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+      <div class="card-footer small text-secondary">Stale data is flagged so dashboards never silently show out-of-date figures (Section 10.4).</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

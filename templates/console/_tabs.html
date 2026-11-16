@@ -1,0 +1,12 @@
+<ul class="nav nav-tabs mb-3">
+  {% if user.is_system_admin %}
+  <li class="nav-item"><a class="nav-link {% if tab == 'status' %}active{% endif %}" href="{% url 'console:status' %}">System status</a></li>
+  <li class="nav-item"><a class="nav-link {% if tab == 'users' %}active{% endif %}" href="{% url 'console:user_list' %}">Users</a></li>
+  <li class="nav-item"><a class="nav-link {% if tab == 'departments' %}active{% endif %}" href="{% url 'console:departments' %}">Departments</a></li>
+  {% endif %}
+  <li class="nav-item"><a class="nav-link {% if tab == 'settings' %}active{% endif %}" href="{% url 'console:settings' %}">Thresholds</a></li>
+  <li class="nav-item"><a class="nav-link" href="{% url 'analytics:definitions' %}">Metric definitions</a></li>
+  {% if user.is_system_admin %}
+  <li class="nav-item"><a class="nav-link" href="{% url 'audit:list' %}">Audit log</a></li>
+  {% endif %}
+</ul>

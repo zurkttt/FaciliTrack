@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}QR Codes{% endblock %}
+{% block extra_head %}
+<style>
+  .qr-card svg { width: 100%; height: auto; max-width: 220px; display: block; margin: 0 auto; }
+  @media print {
+    nav, .no-print, .alert { display: none !important; }
+    body { background: #fff !important; }
+    main { padding: 0 !important; }
+    .qr-card { break-inside: avoid; border: 1px solid #000 !important; }
+  }
+</style>
+{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 no-print">
+  <h1 class="h3 mb-0">Room QR codes</h1>
+  <div class="d-flex flex-wrap gap-2">
+    <form method="get" class="d-flex gap-2">
+      <label class="visually-hidden" for="building">Building</label>
+      <select id="building" name="building" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="">All buildings</option>
+        {% for b in buildings %}<option value="{{ b.pk }}" {% if building_id == b.pk|stringformat:"s" %}selected{% endif %}>{{ b.code }}</option>{% endfor %}
+      </select>
+    </form>
+    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()"><i class="bi bi-printer"></i> Print</button>
+  </div>
+</div>
+
+{% if is_localhost %}
+<div class="alert alert-warning small">
+  <i class="bi bi-exclamation-triangle"></i>
+  These codes point to <code>localhost</code>, which phones cannot reach. To test with a phone on the same Wi-Fi,
+  run <code>python manage.py runserver 0.0.0.0:8000</code>, add your computer's IP address to <code>ALLOWED_HOSTS</code> in <code>.env</code>,
+  and open this page using that IP address (for example <code>http://192.168.1.10:8000/usage/qr/</code>).
+</div>
+{% endif %}
+
+<p class="text-secondary small no-print">Print and post one code at each room's entrance. Scanning it opens the check-in page (login required).</p>
+
+<div class="row g-3">
+  {% for card in cards %}
+  <div class="col-6 col-md-4 col-xl-3">
+    <div class="card qr-card h-100 text-center">
+      <div class="card-body">
+        <div class="fw-bold fs-5">{{ card.facility.facility_code }}</div>
+        <div class="small mb-2">{{ card.facility.name }}</div>
+        {{ card.svg }}
+        <div class="small mt-2">Scan to check in</div>
+        <div class="text-secondary" style="font-size: 0.65rem; word-break: break-all;">{{ card.url }}</div>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <p class="text-secondary">No active facilities.</p>
+  {% endfor %}
+</div>
+{% endblock %}
